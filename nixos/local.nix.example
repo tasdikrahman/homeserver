@@ -1,0 +1,8 @@
+# Copy this to local.nix and fill in your values.
+# local.nix is gitignored — never commit it.
+{
+  hostname      = "your-machine-name";
+  tailscaleHost = "your-machine.your-tailnet.ts.net";
+  username      = "your-unix-username";
+  sshPublicKey  = "ssh-rsa AAAA... user@host";
+}
