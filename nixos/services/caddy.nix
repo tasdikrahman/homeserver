@@ -59,5 +59,11 @@
         reverse_proxy localhost:15080
       '';
     };
+    virtualHosts."${tailscaleHost}:9090" = {
+      extraConfig = ''
+        tls /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem
+        reverse_proxy localhost:19090
+      '';
+    };
   };
 }

@@ -21,6 +21,7 @@ in
       ./services/kanidm.nix
       ./services/actual-budget.nix
       ./services/pihole.nix
+      ./services/prometheus.nix
     ];
 
   # Bootloader.
