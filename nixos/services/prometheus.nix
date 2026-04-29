@@ -33,7 +33,8 @@ in
   };
 
   systemd.tmpfiles.rules = [
-    "d /var/lib/prometheus 0750 root root -"
+    # prom/prometheus image runs as nobody — directory must be owned by that user.
+    "d /var/lib/prometheus 0750 nobody nobody -"
   ];
 
   networking.firewall.allowedTCPPorts = [ 9090 ];
