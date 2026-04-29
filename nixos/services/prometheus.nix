@@ -1,4 +1,4 @@
-{ config, pkgs, tailscaleHost, ... }:
+{ config, pkgs, ... }:
 
 let
   prometheusConfig = pkgs.writeText "prometheus.yml" ''
