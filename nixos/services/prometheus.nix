@@ -25,6 +25,9 @@ in
       "--config.file=/etc/prometheus/prometheus.yml"
       "--storage.tsdb.path=/prometheus"
       "--web.listen-address=127.0.0.1:19090"
+      # Storage is intentionally kept small — 7 days and 2 GB max by design.
+      "--storage.tsdb.retention.time=7d"
+      "--storage.tsdb.retention.size=2GB"
     ];
     autoStart = true;
   };
