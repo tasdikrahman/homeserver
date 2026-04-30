@@ -22,8 +22,8 @@ let
             labels:
               severity: critical
             annotations:
-              summary: "{{ $labels.instance }} is down"
-              description: "{{ $labels.instance }} has been unreachable for more than 2 minutes."
+              summary: "Service Down: {{ $labels.service }}"
+              description: "The {{ $labels.service }} service ({{ $labels.instance }}) has been unreachable for more than 2 minutes."
   '';
 
   prometheusConfig = pkgs.writeText "prometheus.yml" ''
@@ -44,15 +44,30 @@ let
         static_configs:
           - targets: ['127.0.0.1:19090']
 
+      - job_name: 'alertmanager'
+        static_configs:
+          - targets: ['127.0.0.1:19093']
+
       - job_name: 'blackbox'
         metrics_path: /probe
         params:
           module: [http_2xx]
         static_configs:
-          - targets:
-              - https://${tailscaleHost}:5006
-              - https://${tailscaleHost}:8443
-              - https://${tailscaleHost}:9090
+          - targets: ["https://${tailscaleHost}:5006"]
+            labels:
+              service: "Actual Budget"
+          - targets: ["https://${tailscaleHost}:8443"]
+            labels:
+              service: "Kanidm"
+          - targets: ["https://${tailscaleHost}:9090"]
+            labels:
+              service: "Prometheus"
+          - targets: ["https://${tailscaleHost}:9093"]
+            labels:
+              service: "Alertmanager"
+          - targets: ["https://${tailscaleHost}:3000"]
+            labels:
+              service: "Grafana"
         relabel_configs:
           - source_labels: [__address__]
             target_label: __param_target
