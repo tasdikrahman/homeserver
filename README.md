@@ -36,6 +36,19 @@ echo "ACTUAL_OPENID_CLIENT_SECRET=<secret>" | sudo tee /etc/actual/oidc-secret
 
 Get the secret from: `kanidm oauth2 show-basic-secret actual-budget`
 
+**Note on Sync & Connectivity (NextDNS/Tailscale):**
+If you use NextDNS and cannot reach the `.ts.net` endpoints (or sync fails), you must integrate NextDNS directly into Tailscale to prevent DNS conflicts:
+1. Go to **Tailscale Admin Console > DNS**.
+2. Add your **NextDNS Configuration ID** as a Global Nameserver.
+3. Enable **"Override local DNS"**.
+4. Enable **"Use with exit node"** in the NextDNS settings within Tailscale.
+5. Disable any standalone NextDNS apps/profiles on your devices.
+
+**Verifying the setup:**
+- Visit [test.nextdns.io](https://test.nextdns.io) on your device.
+- It should show `status: "ok"` and `protocol: "DOH"`.
+- Visit [dnsleaktest.com](https://www.dnsleaktest.com) to ensure your DNS queries are going to NextDNS and not your ISP.
+
 ### Kanidm
 Identity provider that issues OIDC tokens for services like Actual Budget. Handles its own TLS directly on port 8443 using the Tailscale cert.
 
