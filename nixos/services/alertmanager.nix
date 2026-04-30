@@ -15,8 +15,8 @@ let
     receivers:
       - name: 'telegram'
         telegram_configs:
-          - bot_token: ''${TELEGRAM_TOKEN}
-            chat_id: ''${TELEGRAM_CHAT_ID}
+          - bot_token_file: '/etc/alertmanager/bot_token'
+            chat_id_file: '/etc/alertmanager/chat_id'
             send_resolved: true
   '';
 in
@@ -28,21 +28,14 @@ in
     volumes = [
       "${alertmanagerConfig}:/etc/alertmanager/alertmanager.yml:ro"
       "/var/lib/alertmanager:/alertmanager"
+      "/etc/alertmanager/bot_token:/etc/alertmanager/bot_token:ro"
+      "/etc/alertmanager/chat_id:/etc/alertmanager/chat_id:ro"
     ];
-    # Alertmanager supports environment variable expansion in its config file.
     cmd = [
       "--config.file=/etc/alertmanager/alertmanager.yml"
-      "--config.expand-envvars"
       "--storage.path=/alertmanager"
       "--web.listen-address=127.0.0.1:19093"
     ];
-    # Create once:
-    #   sudo mkdir -p /etc/alertmanager
-    #   sudo install -m 600 /dev/null /etc/alertmanager/secrets
-    # Then write:
-    #   TELEGRAM_TOKEN=<token from @BotFather>
-    #   TELEGRAM_CHAT_ID=<your numeric chat ID>
-    environmentFiles = [ "/etc/alertmanager/secrets" ];
     autoStart = true;
   };
 
