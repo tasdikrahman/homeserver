@@ -35,13 +35,10 @@
 
     paths = [
       "/etc"
-      "/var/lib"
-    ];
-
-    exclude = [
-      "/var/lib/docker"
-      "/var/lib/containers"
-      "/var/lib/systemd/coredump"
+      "/var/lib/actual"
+      "/var/lib/grafana"
+      "/var/lib/kanidm"
+      "/var/lib/caddy/tls"
     ];
 
     # Run daily at 02:00.
