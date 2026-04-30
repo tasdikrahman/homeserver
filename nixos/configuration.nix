@@ -20,7 +20,6 @@ in
       ./services/caddy.nix
       ./services/kanidm.nix
       ./services/actual-budget.nix
-      ./services/pihole.nix
       ./services/prometheus.nix
     ];
 
