@@ -21,6 +21,8 @@ in
       ./services/kanidm.nix
       ./services/actual-budget.nix
       ./services/prometheus.nix
+      ./services/alertmanager.nix
+      ./services/grafana.nix
     ];
 
   # Bootloader.

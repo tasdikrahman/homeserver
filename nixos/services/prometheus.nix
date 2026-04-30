@@ -1,24 +1,88 @@
-{ config, pkgs, ... }:
+{ config, pkgs, tailscaleHost, ... }:
 
 let
+  blackboxConfig = pkgs.writeText "blackbox.yml" ''
+    modules:
+      http_2xx:
+        prober: http
+        timeout: 5s
+        http:
+          valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+          valid_status_codes: []
+          method: GET
+  '';
+
+  alertRules = pkgs.writeText "rules.yml" ''
+    groups:
+      - name: service_availability
+        rules:
+          - alert: ServiceDown
+            expr: probe_success == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "{{ $labels.instance }} is down"
+              description: "{{ $labels.instance }} has been unreachable for more than 2 minutes."
+  '';
+
   prometheusConfig = pkgs.writeText "prometheus.yml" ''
     global:
       scrape_interval: 15s
       evaluation_interval: 15s
 
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets: ['127.0.0.1:19093']
+
+    rule_files:
+      - /etc/prometheus/rules.yml
+
     scrape_configs:
       - job_name: 'prometheus'
         static_configs:
-          - targets: ['localhost:19090']
+          - targets: ['127.0.0.1:19090']
+
+      - job_name: 'blackbox'
+        metrics_path: /probe
+        params:
+          module: [http_2xx]
+        static_configs:
+          - targets:
+              - https://${tailscaleHost}:5006
+              - https://${tailscaleHost}:8443
+              - https://${tailscaleHost}:9090
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: '127.0.0.1:19115'
   '';
 in
 
 {
+  virtualisation.oci-containers.containers.blackbox-exporter = {
+    image = "prom/blackbox-exporter:v0.28.0";
+    extraOptions = [ "--network=host" ];
+    volumes = [
+      "${blackboxConfig}:/etc/blackbox/blackbox.yml:ro"
+    ];
+    cmd = [
+      "--config.file=/etc/blackbox/blackbox.yml"
+      "--web.listen-address=127.0.0.1:19115"
+    ];
+    autoStart = true;
+  };
+
   virtualisation.oci-containers.containers.prometheus = {
     image = "prom/prometheus:v3.11.3";
     extraOptions = [ "--network=host" ];
     volumes = [
       "${prometheusConfig}:/etc/prometheus/prometheus.yml:ro"
+      "${alertRules}:/etc/prometheus/rules.yml:ro"
       "/var/lib/prometheus:/prometheus"
     ];
     cmd = [
@@ -33,7 +97,7 @@ in
   };
 
   systemd.tmpfiles.rules = [
-    # prom/prometheus image runs as nobody — directory must be owned by that user.
+    # prom/prometheus and prom/blackbox-exporter images run as nobody — directories must be owned by that user.
     "d /var/lib/prometheus 0750 nobody nobody -"
   ];
 
