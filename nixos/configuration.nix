@@ -23,6 +23,7 @@ in
       ./services/prometheus.nix
       ./services/alertmanager.nix
       ./services/grafana.nix
+      ./services/restic.nix
     ];
 
   # Bootloader.
