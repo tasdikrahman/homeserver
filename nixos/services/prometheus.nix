@@ -24,6 +24,26 @@ let
             annotations:
               summary: "Service Down: {{ $labels.service }}"
               description: "The {{ $labels.service }} service ({{ $labels.instance }}) has been unreachable for more than 2 minutes."
+
+      - name: backups
+        rules:
+          - alert: ResticBackupFailed
+            expr: node_systemd_unit_state{name="restic-backups-hetzner.service",state="failed"} == 1
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Restic backup failed"
+              description: "The restic backup service has entered a failed state."
+
+          - alert: ResticBackupStale
+            expr: time() - node_systemd_timer_last_trigger_seconds{name="restic-backups-hetzner.timer"} > 90000
+            for: 1h
+            labels:
+              severity: warning
+            annotations:
+              summary: "Restic backup hasn't run in over 25 hours"
+              description: "The last restic backup ran more than 25 hours ago."
   '';
 
   prometheusConfig = pkgs.writeText "prometheus.yml" ''
@@ -47,6 +67,10 @@ let
       - job_name: 'alertmanager'
         static_configs:
           - targets: ['127.0.0.1:19093']
+
+      - job_name: 'node'
+        static_configs:
+          - targets: ['127.0.0.1:9100']
 
       - job_name: 'blackbox'
         metrics_path: /probe
@@ -115,6 +139,13 @@ in
     # prom/prometheus and prom/blackbox-exporter images run as nobody — directories must be owned by that user.
     "d /var/lib/prometheus 0750 nobody nobody -"
   ];
+
+  services.prometheus.exporters.node = {
+    enable = true;
+    listenAddress = "127.0.0.1";
+    port = 9100;
+    enabledCollectors = [ "systemd" ];
+  };
 
   networking.firewall.allowedTCPPorts = [ 9090 ];
 }
