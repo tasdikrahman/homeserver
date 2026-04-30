@@ -13,28 +13,14 @@ NixOS configuration for a self-hosted home server. All services are accessible o
 ```
 Tailscale VPN (tailscale0)
         │
-        ├── :53   → Pi-hole (DNS ad blocker)
-        ├── :5006  → Caddy → Actual Budget (port 15006 internally)
-        ├── :8080  → Caddy → Pi-hole web UI (port 15080 internally)
-        └── :8443  → Kanidm (identity provider, TLS direct)
+        ├── :5006  → Caddy → Actual Budget  (port 15006 internally)
+        ├── :8443  → Kanidm (identity provider, TLS direct)
+        └── :9090  → Caddy → Prometheus     (port 19090 internally)
 ```
 
-All HTTPS services use a Tailscale-signed TLS certificate provisioned by `tailscale cert` and renewed weekly. Caddy handles TLS termination for Actual Budget and Pi-hole. Kanidm terminates TLS itself.
+All HTTPS services use a Tailscale-signed TLS certificate provisioned by `tailscale cert` and renewed weekly. Caddy handles TLS termination for Actual Budget and Prometheus. Kanidm terminates TLS itself.
 
 ## Services
-
-### Pi-hole
-DNS-level ad and tracker blocker. Runs as a Podman container with host networking so it can bind to port 53 on all interfaces. All Tailscale devices use it as their DNS server via the Tailscale admin console nameserver setting.
-
-- Web UI: `https://<tailscale-host>:8080/admin`
-- DNS: port 53 on the Tailscale IP
-
-**First-time setup:**
-```bash
-sudo mkdir -p /etc/pihole
-sudo install -m 600 /dev/null /etc/pihole/webpassword
-echo "WEBPASSWORD=<your-password>" | sudo tee /etc/pihole/webpassword
-```
 
 ### Actual Budget
 Self-hosted personal finance app. Runs as a Podman container with host networking. OIDC login is handled by Kanidm.
@@ -56,8 +42,13 @@ Identity provider that issues OIDC tokens for services like Actual Budget. Handl
 - URL: `https://<tailscale-host>:8443`
 - CLI: `kanidm` (installed system-wide)
 
+### Prometheus
+Metrics collection and monitoring. Runs as a Podman container with host networking, listening internally on port 19090. Data is retained for 7 days and capped at 2 GB by design.
+
+- URL: `https://<tailscale-host>:9090`
+
 ### Caddy
-Reverse proxy and TLS terminator for Actual Budget and Pi-hole web UI. Uses a Tailscale-signed certificate stored at `/var/lib/caddy/tls/`.
+Reverse proxy and TLS terminator for Actual Budget and Prometheus. Uses a Tailscale-signed certificate stored at `/var/lib/caddy/tls/`.
 
 ### Tailscale
 Mesh VPN that provides private connectivity between all devices. The `tailscale0` interface is fully trusted in the firewall — all service ports are only accessible to devices on the Tailscale network.
@@ -86,7 +77,7 @@ nixos/
     ├── caddy.nix                   # Caddy reverse proxy + Tailscale TLS cert provisioning
     ├── kanidm.nix                  # Kanidm identity provider (OIDC)
     ├── actual-budget.nix           # Actual Budget container
-    └── pihole.nix                  # Pi-hole DNS ad blocker container
+    └── prometheus.nix              # Prometheus metrics container
 ```
 
 ## Local configuration
@@ -103,8 +94,7 @@ cp nixos/local.nix.example nixos/local.nix
 | Path | Service |
 |------|---------|
 | `/var/lib/actual` | Actual Budget database |
-| `/var/lib/pihole/etc-pihole` | Pi-hole config and gravity database |
-| `/var/lib/pihole/etc-dnsmasq.d` | dnsmasq overrides |
+| `/var/lib/prometheus` | Prometheus TSDB |
 | `/var/lib/caddy/tls` | Tailscale TLS cert and key |
 | `/var/lib/kanidm` | Kanidm database |
 
@@ -114,7 +104,6 @@ cp nixos/local.nix.example nixos/local.nix
 |------|---------|
 | `nixos/local.nix` | `hostname`, `tailscaleHost`, `username`, `sshPublicKey` |
 | `/etc/actual/oidc-secret` | `ACTUAL_OPENID_CLIENT_SECRET=...` |
-| `/etc/pihole/webpassword` | `WEBPASSWORD=...` |
 
 ## Initial setup on a new machine
 
@@ -150,7 +139,6 @@ sudo nixos-rebuild switch
 
 ## TODO
 
-- [ ] Evaluate [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome#comparison-pi-hole) as an alternative to Pi-hole
 - [ ] Set up Restic backups to Hetzner Storage Box
 
 ## Adding a new service
