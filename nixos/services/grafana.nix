@@ -1,5 +1,15 @@
 { config, pkgs, tailscaleHost, ... }:
 
+# Grafana setup instructions:
+# 1. Create the secrets directory:
+#    sudo mkdir -p /etc/grafana
+#
+# 2. Create the secret file with restricted permissions:
+#    sudo install -m 600 /dev/null /etc/grafana/secrets
+#
+# 3. Set the admin password:
+#    echo "GF_SECURITY_ADMIN_PASSWORD=<your-password>" | sudo tee /etc/grafana/secrets > /dev/null
+
 {
   virtualisation.oci-containers.containers.grafana = {
     image = "grafana/grafana:11.5.2";

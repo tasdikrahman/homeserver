@@ -205,6 +205,9 @@ in
 
     # Identity management CLI — used to manage Kanidm users and OAuth2 clients
     kanidm_1_9
+
+    # Backup tool
+    restic
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
