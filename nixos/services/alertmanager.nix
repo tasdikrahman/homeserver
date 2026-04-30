@@ -1,5 +1,18 @@
 { config, pkgs, ... }:
 
+# Native Alertmanager Telegram setup instructions:
+# 1. Create the secrets directory:
+#    sudo mkdir -p /etc/alertmanager
+#
+# 2. Create the bot_token file:
+#    echo "<YOUR_BOT_TOKEN>" | sudo tee /etc/alertmanager/bot_token > /dev/null
+#
+# 3. Create the chat_id file:
+#    echo "<YOUR_CHAT_ID>" | sudo tee /etc/alertmanager/chat_id > /dev/null
+#
+# 4. Ensure permissions allow the container to read them:
+#    sudo chmod 644 /etc/alertmanager/bot_token /etc/alertmanager/chat_id
+
 let
   alertmanagerConfig = pkgs.writeText "alertmanager.yml" ''
     global:
