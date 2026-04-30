@@ -41,6 +41,8 @@ in
 
   systemd.tmpfiles.rules = [
     "d /var/lib/alertmanager 0750 nobody nobody -"
+    "f /etc/alertmanager/bot_token 0644 root root -"
+    "f /etc/alertmanager/chat_id 0644 root root -"
   ];
 
   networking.firewall.allowedTCPPorts = [ 9093 ];
