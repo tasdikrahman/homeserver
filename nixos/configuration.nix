@@ -9,10 +9,11 @@ let
 in
 
 {
-  _module.args.tailscaleHost  = local.tailscaleHost;
-  _module.args.hostname       = local.hostname;
-  _module.args.username       = local.username;
-  _module.args.sshPublicKey   = local.sshPublicKey;
+  _module.args.tailscaleHost    = local.tailscaleHost;
+  _module.args.hostname         = local.hostname;
+  _module.args.username         = local.username;
+  _module.args.sshPublicKey     = local.sshPublicKey;
+  _module.args.resticRepository = local.resticRepository;
 
   imports =
     [ ./hardware-configuration.nix

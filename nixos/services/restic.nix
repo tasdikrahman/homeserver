@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, resticRepository, ... }:
 
 # Restic backup to Hetzner Object Storage (S3-compatible) setup:
 #
@@ -20,18 +20,12 @@
 #
 # 6. Initialise the repository once (run as root):
 #    sudo env $(cat /etc/restic/env | xargs) restic \
-#      -r s3:https://nbg1.your-objectstorage.com/<bucket-name> \
+#      -r <resticRepository from local.nix> \
 #      --password-file /etc/restic/password init
-#
-# Replace fsn1 with your chosen region and <bucket-name> with your actual bucket.
 
 {
   services.restic.backups.hetzner = {
-    # Repository on Hetzner Object Storage.
-    # Format: s3:https://<region>.your-objectstorage.com/<bucket-name>
-    # Set this to your actual bucket URL, e.g.:
-    #   s3:https://fsn1.your-objectstorage.com/homeserver-backups
-    repository = "s3:https://nbg1.your-objectstorage.com/homeserver-tasdikrahman";
+    repository = resticRepository;
 
     # Passphrase used to encrypt backup data at rest.
     passwordFile = "/etc/restic/password";
