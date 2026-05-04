@@ -5,7 +5,7 @@
   # same machine — Podman's bridge network can't route to the Tailscale IP.
   # Listens on 15006 internally (ACTUAL_PORT) to avoid clashing with Caddy on 5006.
   virtualisation.oci-containers.containers.actual = {
-    image = "actualbudget/actual-server:26.4.0";
+    image = "actualbudget/actual-server:26.5.0";
     extraOptions = [ "--network=host" ];
     volumes = [ "/var/lib/actual:/data" ];
     autoStart = true;
