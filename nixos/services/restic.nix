@@ -39,6 +39,7 @@
       "/var/lib/grafana"
       "/var/lib/kanidm"
       "/var/lib/caddy/tls"
+      "/var/lib/miniflux-db"
     ];
 
     # Run daily at 02:00.

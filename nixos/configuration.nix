@@ -24,6 +24,7 @@ in
       ./services/prometheus.nix
       ./services/alertmanager.nix
       ./services/grafana.nix
+      ./services/miniflux.nix
       ./services/restic.nix
     ];
 

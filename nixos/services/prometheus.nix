@@ -92,6 +92,9 @@ let
           - targets: ["https://${tailscaleHost}:3000"]
             labels:
               service: "Grafana"
+          - targets: ["https://${tailscaleHost}:8080"]
+            labels:
+              service: "Miniflux"
         relabel_configs:
           - source_labels: [__address__]
             target_label: __param_target
