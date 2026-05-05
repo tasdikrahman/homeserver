@@ -45,6 +45,7 @@
     environment = {
       LISTEN_ADDR    = "127.0.0.1:18080";
       RUN_MIGRATIONS = "1";
+      CREATE_ADMIN   = "1";
     };
     environmentFiles = [ "/etc/miniflux/secrets" ];
     autoStart = true;
