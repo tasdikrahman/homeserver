@@ -25,6 +25,44 @@ let
               summary: "Service Down: {{ $labels.service }}"
               description: "The {{ $labels.service }} service ({{ $labels.instance }}) has been unreachable for more than 2 minutes."
 
+      - name: node_resources
+        rules:
+          - alert: HighCPUUsage
+            expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU usage"
+              description: "CPU usage has been above 85% for more than 5 minutes (current: {{ $value | printf \"%.1f\" }}%)."
+
+          - alert: HighMemoryUsage
+            expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory usage"
+              description: "Memory usage has been above 85% for more than 5 minutes (current: {{ $value | printf \"%.1f\" }}%)."
+
+          - alert: LowDiskSpace
+            expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|devtmpfs|efivarfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|devtmpfs|efivarfs"})) * 100 > 85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Low disk space on {{ $labels.mountpoint }}"
+              description: "Disk usage on {{ $labels.mountpoint }} has been above 85% for more than 5 minutes (current: {{ $value | printf \"%.1f\" }}%)."
+
+          - alert: CriticalDiskSpace
+            expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|devtmpfs|efivarfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|devtmpfs|efivarfs"})) * 100 > 95
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Critical disk space on {{ $labels.mountpoint }}"
+              description: "Disk usage on {{ $labels.mountpoint }} has been above 95% for more than 5 minutes (current: {{ $value | printf \"%.1f\" }}%). Immediate action required."
+
       - name: backups
         rules:
           - alert: ResticBackupFailed
