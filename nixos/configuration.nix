@@ -50,9 +50,6 @@ in
   # Enable networking
   networking.networkmanager.enable = true;
 
-  # Disable systemd-resolved's stub listener so Pi-hole can bind to port 53.
-  # Without this, resolved occupies 127.0.0.53:53 and conflicts with Pi-hole.
-  services.resolved.extraConfig = "DNSStubListener=no";
 
   # Firewall: deny all inbound traffic by default, only allow SSH.
   # Add ports here as you expose more services (e.g. 80, 443 for HTTP/S).
