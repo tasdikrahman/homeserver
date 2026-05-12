@@ -52,8 +52,10 @@
   };
 
   systemd.tmpfiles.rules = [
-    # postgres:17-alpine runs as uid 999 inside the container.
-    "d /var/lib/miniflux-db 0750 999 999 -"
+    # postgres:17-alpine runs as uid/gid 70 inside the container — must match here
+    # or postgres cannot read its own data directory (pg_logical/snapshots etc).
+    "d /var/lib/miniflux-db 0750 70 70 -"
+    # Placeholder files so NixOS activation doesn't fail if secrets haven't been written yet.
     "f /etc/miniflux/db-secrets 0600 root root -"
     "f /etc/miniflux/secrets    0600 root root -"
   ];
