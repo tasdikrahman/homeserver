@@ -12,11 +12,12 @@
     script = ''
       set -euo pipefail
       REPO="/home/${username}/development/src/github.com/${username}/homeserver"
+      RUN_AS="runuser -u ${username} --"
 
-      ${pkgs.git}/bin/git -C "$REPO" fetch origin main
+      $RUN_AS ${pkgs.git}/bin/git -C "$REPO" fetch origin main
 
-      LOCAL=$(${pkgs.git}/bin/git -C "$REPO" rev-parse HEAD)
-      REMOTE=$(${pkgs.git}/bin/git -C "$REPO" rev-parse origin/main)
+      LOCAL=$($RUN_AS ${pkgs.git}/bin/git -C "$REPO" rev-parse HEAD)
+      REMOTE=$($RUN_AS ${pkgs.git}/bin/git -C "$REPO" rev-parse origin/main)
 
       if [ "$LOCAL" = "$REMOTE" ]; then
         echo "Already up to date ($LOCAL)."
@@ -24,9 +25,9 @@
       fi
 
       echo "New commits detected. Pulling..."
-      ${pkgs.git}/bin/git -C "$REPO" pull --ff-only origin main
+      $RUN_AS ${pkgs.git}/bin/git -C "$REPO" pull --ff-only origin main
       echo "Applied:"
-      ${pkgs.git}/bin/git -C "$REPO" --no-pager log --oneline "$LOCAL..HEAD"
+      $RUN_AS ${pkgs.git}/bin/git -C "$REPO" --no-pager log --oneline "$LOCAL..HEAD"
 
       echo "Running nixos-rebuild switch..."
       /run/current-system/sw/bin/nixos-rebuild switch
