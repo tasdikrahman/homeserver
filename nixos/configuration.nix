@@ -298,6 +298,7 @@ in
   # enable tailscale
   services.tailscale.enable = true;
 
+  # Cap journal disk usage and drop entries older than a month to prevent storage fill-up.
   services.journald.extraConfig = ''
     SystemMaxUse=500M
     MaxRetentionSec=1month
