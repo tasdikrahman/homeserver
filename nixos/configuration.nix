@@ -297,4 +297,9 @@ in
 
   # enable tailscale
   services.tailscale.enable = true;
+
+  services.journald.extraConfig = ''
+    SystemMaxUse=500M
+    MaxRetentionSec=1month
+  '';
 }
