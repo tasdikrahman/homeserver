@@ -26,6 +26,7 @@ in
       ./services/grafana.nix
       ./services/miniflux.nix
       ./services/restic.nix
+      ./services/auto-rebuild.nix
     ];
 
   # Bootloader.
