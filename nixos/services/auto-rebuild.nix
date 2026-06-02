@@ -12,7 +12,7 @@
     script = ''
       set -euo pipefail
       REPO="/home/${username}/development/src/github.com/${username}/homeserver"
-      RUN_AS="${pkgs.util-linux}/bin/runuser -u ${username} --"
+      RUN_AS="/run/current-system/sw/bin/runuser -u ${username} --"
 
       $RUN_AS ${pkgs.git}/bin/git -C "$REPO" fetch origin main
 
