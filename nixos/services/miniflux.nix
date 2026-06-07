@@ -42,6 +42,11 @@
   virtualisation.oci-containers.containers.miniflux = {
     image = "miniflux/miniflux:2.2.19";
     extraOptions = [ "--network=host" ];
+    # Podman strips the host nameserver (100.100.100.100, Tailscale MagicDNS) when
+    # generating the container's /etc/resolv.conf, leaving it without a nameserver.
+    # Miniflux (Go) then falls back to 127.0.0.1:53 and all feed lookups fail with
+    # "connection refused". Bind-mount the host's working resolv.conf instead.
+    volumes = [ "/etc/resolv.conf:/etc/resolv.conf:ro" ];
     environment = {
       LISTEN_ADDR    = "127.0.0.1:18080";
       RUN_MIGRATIONS = "1";
