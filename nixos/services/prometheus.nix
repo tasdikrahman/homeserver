@@ -147,8 +147,14 @@ in
   virtualisation.oci-containers.containers.blackbox-exporter = {
     image = "prom/blackbox-exporter:v0.28.0";
     extraOptions = [ "--network=host" ];
+    # Podman strips the host nameserver (100.100.100.100, Tailscale MagicDNS) when
+    # generating the container's /etc/resolv.conf, leaving it without a nameserver.
+    # blackbox-exporter (Go) then falls back to [::1]:53 and every probe fails with
+    # "connection refused" — all targets are MagicDNS names. Same fix as miniflux:
+    # bind-mount the host's working resolv.conf instead.
     volumes = [
       "${blackboxConfig}:/etc/blackbox/blackbox.yml:ro"
+      "/etc/resolv.conf:/etc/resolv.conf:ro"
     ];
     cmd = [
       "--config.file=/etc/blackbox/blackbox.yml"
