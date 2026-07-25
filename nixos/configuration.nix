@@ -174,6 +174,7 @@ in
     traceroute
     tcpdump
     wget
+    openssl
 
     # Version control
     git
@@ -205,7 +206,7 @@ in
     rustup       # rust toolchain manager — run `rustup install stable` after rebuild
 
     # Identity management CLI — used to manage Kanidm users and OAuth2 clients
-    kanidm_1_9
+    kanidm_1_10
 
     # Backup tool
     restic
