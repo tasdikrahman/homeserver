@@ -122,6 +122,14 @@ in
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnCalendar = "weekly";
+      # Monotonic fallback: on 2026-07-21 the OnCalendar trigger silently
+      # stopped re-arming (list-timers showed NEXT/LEFT as "-") after
+      # auto-rebuild.service's frequent `nixos-rebuild switch` daemon-reloads,
+      # so the weekly renewal never fired again and the shared cert expired.
+      # OnUnitActiveSec re-arms relative to this unit's own last activation,
+      # so it keeps firing even if the calendar trigger gets stuck.
+      OnUnitActiveSec = "1d";
+      OnBootSec = "5min";
       # Catch up missed runs if the machine was offline at the scheduled time.
       Persistent = true;
     };

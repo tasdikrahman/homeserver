@@ -39,7 +39,7 @@
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnBootSec = "2min";
-      OnUnitActiveSec = "15min";
+      OnUnitActiveSec = "5min";
       Unit = "nixos-auto-rebuild.service";
     };
   };
