@@ -7,7 +7,7 @@
   # It reads the Tailscale cert via the caddy group (see users.users.kanidm below).
   services.kanidm = {
     enableServer = true;
-    package = pkgs.kanidm_1_9;
+    package = pkgs.kanidm_1_10;
     serverSettings = {
       origin = "https://${tailscaleHost}:8443";
       domain = tailscaleHost;
