@@ -113,12 +113,38 @@ in
       # already blocks them until this completes within the same transaction.
     };
     script = ''
+      OLD_HASH=""
+      if [ -f /var/lib/caddy/tls/cert.pem ]; then
+        OLD_HASH=$(${pkgs.coreutils}/bin/sha256sum /var/lib/caddy/tls/cert.pem | cut -d' ' -f1)
+      fi
+
       ${pkgs.tailscale}/bin/tailscale cert \
         --cert-file /var/lib/caddy/tls/cert.pem \
         --key-file /var/lib/caddy/tls/key.pem \
         ${tailscaleHost}
       chown root:caddy /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem
       chmod 640 /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem
+
+      NEW_HASH=$(${pkgs.coreutils}/bin/sha256sum /var/lib/caddy/tls/cert.pem | cut -d' ' -f1)
+
+      # Caddy and Kanidm don't reliably pick up a renewed cert on their own
+      # (confirmed 2026-07-25 — Caddy needed a manual reload; Kanidm loads
+      # tls_chain/tls_key once at startup and never re-reads them). Only
+      # reload/restart when the cert content actually changed, and only if
+      # the service is already running — at boot this unit runs before
+      # caddy/kanidm even start (see Before= above), so there's nothing to
+      # reload yet; they'll pick up the fresh cert on their own normal start.
+      if [ "$OLD_HASH" != "$NEW_HASH" ]; then
+        echo "Cert changed, reloading dependent services..."
+        if /run/current-system/sw/bin/systemctl is-active --quiet caddy.service; then
+          /run/current-system/sw/bin/systemctl reload caddy.service
+        fi
+        if /run/current-system/sw/bin/systemctl is-active --quiet kanidm.service; then
+          /run/current-system/sw/bin/systemctl restart kanidm.service
+        fi
+      else
+        echo "Cert unchanged, no reload needed."
+      fi
     '';
   };
 
