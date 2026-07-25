@@ -103,9 +103,14 @@ in
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "oneshot";
-      # Keeps the unit in "active" state after the script exits so that
-      # dependent services see the dependency as satisfied on subsequent starts.
-      RemainAfterExit = true;
+      # No RemainAfterExit: this unit is retriggered periodically by
+      # tailscale-cert.timer. RemainAfterExit=true previously left it stuck
+      # "active (exited)" forever after its first run, and systemd treats a
+      # timer's "start" on an already-active unit as a no-op — so renewals
+      # silently stopped after the very first run (cert expired 2026-07-21;
+      # unit state was frozen since 2026-06-06 despite the timer firing on
+      # schedule). Before=caddy/kanidm ordering doesn't need this: Type=oneshot
+      # already blocks them until this completes within the same transaction.
     };
     script = ''
       ${pkgs.tailscale}/bin/tailscale cert \
