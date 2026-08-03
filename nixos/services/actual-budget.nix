@@ -7,7 +7,16 @@
   virtualisation.oci-containers.containers.actual = {
     image = "actualbudget/actual-server:26.8.0";
     extraOptions = [ "--network=host" ];
-    volumes = [ "/var/lib/actual:/data" ];
+    volumes = [
+      "/var/lib/actual:/data"
+      # Podman strips the host nameserver (100.100.100.100, Tailscale MagicDNS)
+      # when generating the container's /etc/resolv.conf, so the OIDC discovery
+      # URL (a .ts.net hostname) fails to resolve at container startup with
+      # "getaddrinfo ENOTFOUND" — breaking SSO login (password login is
+      # unaffected since it never does a DNS lookup). Same fix as
+      # miniflux/blackbox-exporter: bind-mount the host's working resolv.conf.
+      "/etc/resolv.conf:/etc/resolv.conf:ro"
+    ];
     autoStart = true;
     # Non-secret OIDC config — safe to keep in git.
     environment = {
