@@ -262,12 +262,18 @@ in
   # - rp_filter: drops packets with spoofed source IPs (reverse path filtering)
   # - accept_redirects=0: ignores ICMP redirect messages that could alter routing
   # - icmp_echo_ignore_broadcasts: prevents the server being used as a smurf attack amplifier
+  #
+  # kernel.panic / kernel.panic_on_oops: if the kernel panics or oopses,
+  # reboot automatically instead of hanging indefinitely waiting for someone
+  # to notice and physically power-cycle it.
   boot.kernel.sysctl = {
     "net.ipv4.tcp_syncookies" = 1;
     "net.ipv4.conf.all.rp_filter" = 1;
     "net.ipv4.conf.all.accept_redirects" = 0;
     "net.ipv6.conf.all.accept_redirects" = 0;
     "net.ipv4.icmp_echo_ignore_broadcasts" = 1;
+    "kernel.panic" = 10;
+    "kernel.panic_on_oops" = 1;
   };
 
   # Auto-upgrade: pulls and applies NixOS updates automatically.
@@ -304,4 +310,35 @@ in
     SystemMaxUse=500M
     MaxRetentionSec=1month
   '';
+
+  # Garbage-collect old Nix store generations weekly, and cap the number of
+  # bootable generations kept in the systemd-boot menu. auto-rebuild.nix runs
+  # `nixos-rebuild switch` on every new commit (up to every 5 min), and each
+  # switch keeps its old generation + store paths around forever otherwise —
+  # preventive hygiene so /nix/store and the small vfat /boot partition don't
+  # eventually fill up (not what caused the 2026-08-03 freeze — disk usage
+  # was 35%/69% at the time — but worth closing off regardless).
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 14d";
+  };
+  boot.loader.systemd-boot.configurationLimit = 10;
+
+  # zram swap: a compressed in-RAM swap device. There's no disk swap
+  # (swapDevices = [] in hardware-configuration.nix), so under memory
+  # pressure the kernel previously had nowhere to go but OOM-kill or hang.
+  zramSwap.enable = true;
+
+  # Hardware watchdog: if systemd (PID1) itself deadlocks or the kernel
+  # stops scheduling entirely, the AMD FCH TCO watchdog (this is a
+  # Ryzen-based ThinkCentre M75q, so sp5100_tco, not the Intel iTCO_wdt
+  # driver) force-reboots the box instead of it sitting there unresponsive
+  # until someone hits the power button. Added after a 2026-08-03 incident
+  # where the box froze completely (SSH, Tailscale, all services down) with
+  # zero trace in the kernel or journal logs — no OOM, no panic, no error —
+  # meaning nothing short of a hardware-level watchdog could have caught it.
+  boot.kernelModules = [ "sp5100_tco" ];
+  systemd.watchdog.runtimeTime = "30s";
+  systemd.watchdog.rebootTime = "30s";
 }
