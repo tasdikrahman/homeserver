@@ -63,6 +63,16 @@ let
               summary: "Critical disk space on {{ $labels.mountpoint }}"
               description: "Disk usage on {{ $labels.mountpoint }} has been above 95% for more than 5 minutes (current: {{ $value | printf \"%.1f\" }}%). Immediate action required."
 
+      - name: system_events
+        rules:
+          - alert: ServerRebooted
+            expr: (time() - node_boot_time_seconds) < 300
+            labels:
+              severity: critical
+            annotations:
+              summary: "Server rebooted"
+              description: "node_boot_time_seconds shows a boot within the last 5 minutes. allowReboot is false, so this wasn't an unattended NixOS upgrade — likely the hardware watchdog, a kernel.panic auto-reboot, or a manual restart. Check `journalctl -b -1 -p err` for the prior boot's tail."
+
       - name: backups
         rules:
           - alert: ResticBackupFailed
