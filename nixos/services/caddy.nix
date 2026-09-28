@@ -103,6 +103,12 @@ in
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "oneshot";
+      # Backstop: this script calls out to systemctl, so it must never be able
+      # to block the boot/switch transaction indefinitely. On 2026-09-26 it hung
+      # for 2 days holding `nixos-upgrade.service` open (see the --no-block note
+      # in the script below); a timeout turns that class of failure into a
+      # single failed run that the timer retries, instead of a wedged system.
+      TimeoutStartSec = "5min";
       # No RemainAfterExit: this unit is retriggered periodically by
       # tailscale-cert.timer. RemainAfterExit=true previously left it stuck
       # "active (exited)" forever after its first run, and systemd treats a
@@ -134,13 +140,22 @@ in
       # the service is already running — at boot this unit runs before
       # caddy/kanidm even start (see Before= above), so there's nothing to
       # reload yet; they'll pick up the fresh cert on their own normal start.
+      # --no-block is essential, not an optimisation. This unit is pulled into
+      # the same systemd transaction as `nixos-rebuild switch` (via
+      # sysinit-reactivation.target), and a *blocking* `systemctl reload` waits
+      # for a job that cannot be scheduled until that transaction completes —
+      # which cannot happen until this script exits. That is a deadlock, and it
+      # happened on 2026-09-26: `nixos-upgrade.service` sat in state `running`
+      # for 2 days with `caddy.service/reload` and `multi-user.target/start`
+      # queued behind it, blocking every channel update until killed by hand.
+      # Enqueue the jobs and let systemd run them once the transaction drains.
       if [ "$OLD_HASH" != "$NEW_HASH" ]; then
         echo "Cert changed, reloading dependent services..."
         if /run/current-system/sw/bin/systemctl is-active --quiet caddy.service; then
-          /run/current-system/sw/bin/systemctl reload caddy.service
+          /run/current-system/sw/bin/systemctl reload --no-block caddy.service
         fi
         if /run/current-system/sw/bin/systemctl is-active --quiet kanidm.service; then
-          /run/current-system/sw/bin/systemctl restart kanidm.service
+          /run/current-system/sw/bin/systemctl restart --no-block kanidm.service
         fi
       else
         echo "Cert unchanged, no reload needed."

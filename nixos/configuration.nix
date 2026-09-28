@@ -284,6 +284,14 @@ in
     allowReboot = false;
   };
 
+  # Backstop for the nightly upgrade: without a timeout a wedged
+  # `switch-to-configuration` leaves this unit `activating` forever, and a
+  # timer will not re-trigger a unit that is still running — so one hang
+  # silently stops *all* future channel updates. Observed 2026-09-26: hung
+  # 2 days on a deadlocked caddy reload, no alert, no failure, nothing in
+  # `systemctl --failed`. A timeout converts it into a normal failed run.
+  systemd.services.nixos-upgrade.serviceConfig.TimeoutStartSec = "1h";
+
   # Require password for sudo even for wheel group members.
   # Prevents an unattended session from being escalated to root silently.
   security.sudo.wheelNeedsPassword = true;
