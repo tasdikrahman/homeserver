@@ -14,6 +14,18 @@
     serviceConfig = {
       Type = "oneshot";
       User = "root";
+      # A `nixos-rebuild switch` restarts the resolver, so a run that fires
+      # mid-switch loses DNS and `git fetch` dies with "Could not resolve
+      # host: github.com" (observed 2026-09-28 23:40 during the 26.05
+      # upgrade). Retry once a minute rather than parking the unit in
+      # `failed` until the next tick — a lingering failed unit is how the
+      # real failures here get overlooked.
+      Restart = "on-failure";
+      RestartSec = "60s";
+      # Bound the run for the same reason nixos-upgrade is bounded: a hung
+      # switch must not hold the unit active forever, because a timer never
+      # re-triggers a unit that is still running.
+      TimeoutStartSec = "1h";
     };
     # systemd services don't inherit the NIX_PATH an interactive root shell
     # gets from /etc/set-environment via PAM. Without it, `nixos-rebuild

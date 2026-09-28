@@ -282,6 +282,14 @@ in
   system.autoUpgrade = {
     enable = true;
     allowReboot = false;
+    # Pin the channel here rather than leaving it in root's `nix-channel`
+    # state on the machine. Previously the release lived *only* on the box
+    # and nothing in git recorded it, so when nixos-25.11 went EOL on
+    # 2026-06-30 the nightly upgrade kept "succeeding" while rebuilding a
+    # byte-identical store path for three months, with no security updates
+    # and no signal anywhere. Bumping a release is now a one-line diff.
+    # NOTE: 26.05 is supported until 2026-12-31 — bump to 26.11 before then.
+    channel = "https://channels.nixos.org/nixos-26.05";
   };
 
   # Backstop for the nightly upgrade: without a timeout a wedged
