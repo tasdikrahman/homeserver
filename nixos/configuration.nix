@@ -347,6 +347,11 @@ in
   # zero trace in the kernel or journal logs — no OOM, no panic, no error —
   # meaning nothing short of a hardware-level watchdog could have caught it.
   boot.kernelModules = [ "sp5100_tco" ];
-  systemd.watchdog.runtimeTime = "30s";
-  systemd.watchdog.rebootTime = "30s";
+  # Renamed from systemd.watchdog.{runtimeTime,rebootTime}, which 25.11 still
+  # accepts as a deprecated alias but warns about on every rebuild. Using the
+  # new names on both channels keeps the 26.05 bump from turning those warnings
+  # into eval errors — which, with auto-rebuild switching every 5 minutes,
+  # would mean a failed switch on every tick.
+  systemd.settings.Manager.RuntimeWatchdogSec = "30s";
+  systemd.settings.Manager.RebootWatchdogSec = "30s";
 }
