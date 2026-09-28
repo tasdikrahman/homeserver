@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-NixOS configuration for a single self-hosted home server (Lenovo ThinkCentre M75q Gen 2, NixOS 25.11, LUKS-encrypted root). Every service is reachable only over Tailscale — nothing is exposed to the public internet. There is no application code here; changes are Nix modules that get applied with `nixos-rebuild`.
+NixOS configuration for a single self-hosted home server (Lenovo ThinkCentre M75q Gen 2, NixOS 26.05, LUKS-encrypted root). Every service is reachable only over Tailscale — nothing is exposed to the public internet. There is no application code here; changes are Nix modules that get applied with `nixos-rebuild`.
 
 **This Claude Code session runs on a dev machine, not on the homeserver.** The repo here is only ever edited and pushed from this machine — Claude never has direct shell access to the homeserver itself. Any command that needs to run *on* the server (`nixos-rebuild switch`, `sudo install -m 600 ...` for secrets, `systemctl restart ...`, etc.) has to be handed to the user as text for them to copy-paste over there; it cannot be executed via Bash in this session.
 
@@ -225,3 +225,33 @@ Append one line per outage here — the pattern across incidents is worth more t
 - **2026-08-03** — Total freeze: SSH, Tailscale and all services down, zero trace in kernel or journal logs (no OOM, no panic, no error). Disk was 35%/69%, so not a fill-up. Led to the hardware watchdog + `kernel.panic` auto-reboot + zram swap + Nix GC changes in `41839fb`, and the `ServerRebooted` Prometheus alert in `b1e27b1`.
 - **2026-09-28** — All services unreachable over Tailscale; the box was healthy throughout. The server's **Tailscale node key expired** (`keyexpiry=2026-09-25T21:37:45Z`), logging the node out and dropping it from the netmap, so no peer route was installed — `ip route get` sent traffic out the LAN router instead of `tailscale0`. `tailscale status` still reported `online=true` (an expired node keeps its control-plane connection), which sent the first pass of triage down a false client-side-routing path; `tailscale down && up` on the laptop predictably changed nothing. `tailscale ping nixos` returned `peer's node key has expired` and settled it in one command. Recovered by SSHing in over the LAN (`192.168.178.39:22`) and running `sudo tailscale up` — no console trip needed; the node came back on the same `100.107.120.6` with no duplicate. The iPhone expired 5 minutes after the server (same registration session ~2026-03-29) and the iPad was due 2026-10-20. **Lessons: run `tailscale ping` before anything else; `Online=true` proves nothing about a node's usability; the LAN SSH path is the escape hatch for any tailnet-level failure; and key expiry must stay disabled on this server.**
 - **2026-09-28 (b)** — Found while investigating why Tailscale was stuck at 1.90.9: `nixos-upgrade.service` had been `activating (start)` since **2026-09-26 04:40**, so no channel update had run for 2 days and its timer showed `Trigger: n/a` (systemd will not re-trigger a unit that is still running). `systemctl list-jobs` showed the deadlock outright: `nixos-upgrade/start running`, `tailscale-cert/start running`, `caddy/reload waiting`, `multi-user.target/start waiting` — `tailscale-cert.service` had called a *blocking* `systemctl reload caddy.service` from inside the switch's own transaction. Sep 26 was simply the day the cert actually rotated, so the script took its reload branch. Fixed by adding `--no-block` to both `systemctl` calls plus `TimeoutStartSec` on `tailscale-cert.service` and `nixos-upgrade.service`. **Separately and more seriously, this exposed that `nixos-25.11` went EOL on 2026-06-30** — the nightly upgrade had been rebuilding a byte-identical store path (`iwawspy0…`) for months, so the machine has received no security updates since. 26.05 'Yarara' is the only supported release (until 2026-12-31). **Lesson: an `autoUpgrade` that "succeeds" every night proves nothing; check that the store path actually changes and that the channel is still supported.**
+
+### Release upgrades
+
+The channel is pinned declaratively in `system.autoUpgrade.channel`, so a release bump is a one-line diff — but the switch itself is **not** unattended, for three reasons specific to this machine: a new kernel needs a reboot, and a reboot stops at the LUKS prompt until someone types a passphrase; Kanidm cannot skip minor versions, so a release that drops the pinned attribute breaks evaluation; and auto-rebuild retries every 5 minutes, so an eval error becomes a failing switch on every tick.
+
+`system.stateVersion` is **not** a version to bump. It records the release this machine was first installed with (25.11) so NixOS preserves the right defaults for stateful data, and it stays at that value forever.
+
+Procedure, run on the server with console access available for the reboot:
+
+```bash
+sudo nix-channel --add https://channels.nixos.org/nixos-<release> nixos
+sudo nix-channel --update
+sudo nixos-rebuild dry-build 2>&1 | grep -iE "^error|error:|warning"   # the gate — read every warning
+df -h / /boot                                   # a release jump needs room beside the old generation
+tmux new -s upgrade                             # the switch restarts tailscaled; don't run it bare over SSH
+sudo systemctl stop nixos-auto-rebuild.timer    # don't race the switch
+sudo nixos-rebuild switch
+sudo systemctl start nixos-auto-rebuild.timer   # ALWAYS restart it — a stopped timer silently kills deploys
+```
+
+Expect `tailscale-cert.service` and `nixos-auto-rebuild.service` to fail *during* the switch: the resolver restarts, so `tailscale cert` and `git fetch` briefly lose DNS. Both recover on retry; clear them with `systemctl start` and confirm `systemctl --failed` is empty.
+
+Then reboot for the kernel (`readlink /run/booted-system/kernel` vs `/run/current-system/kernel` shows whether one is staged), and afterwards verify the watchdog is still armed — a renamed option or a new kernel can silently disable it:
+
+```bash
+uname -r; lsmod | grep -i tco; ls -l /dev/watchdog*
+systemctl show -p RuntimeWatchdogUSec -p RebootWatchdogUSec
+```
+
+The 2026-09-28 upgrade went 25.11 → 26.05, kernel 6.12.93 → 6.18.54, Tailscale 1.90.9 → 1.98.10. **26.05 is supported until 2026-12-31 — bump to 26.11 before then.**

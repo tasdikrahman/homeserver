@@ -4,7 +4,7 @@ NixOS configuration for a self-hosted home server. All services are accessible o
 
 ## Hardware
 
-- Machine running NixOS 25.11
+- Machine running NixOS 26.05
 - Root filesystem on LUKS-encrypted ext4
 - Connected over WiFi (`wlp2s0`)
 
