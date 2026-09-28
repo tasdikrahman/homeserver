@@ -6,9 +6,11 @@
   # Kanidm handles its own TLS directly on port 8443 — no Caddy in front of it.
   # It reads the Tailscale cert via the caddy group (see users.users.kanidm below).
   services.kanidm = {
-    enableServer = true;
+    # enableServer/serverSettings were renamed to server.enable/server.settings
+    # in 26.05. The old names still work as aliases but warn on every rebuild.
+    server.enable = true;
     package = pkgs.kanidm_1_10;
-    serverSettings = {
+    server.settings = {
       origin = "https://${tailscaleHost}:8443";
       domain = tailscaleHost;
       bindaddress = "[::]:8443";
