@@ -46,6 +46,11 @@ Podman strips the host's nameserver (`100.100.100.100`, Tailscale MagicDNS) when
 ### Secrets
 No secrets live in git. Each service that needs one documents the manual setup steps as comments at the top of its module (create `/etc/<service>/...` files with `install -m 600`, write `KEY=value` env vars) and consumes them via `environmentFiles` (containers) or `passwordFile`/`environmentFile` (restic). `nixos/local.nix` itself is the one secret-bearing file that's part of this repo's structure but excluded via `.gitignore`.
 
+### Identity / adding a user
+Kanidm accounts are runtime state in its own database, not Nix config, so adding a person is a CLI procedure — documented in full at the top of `nixos/services/kanidm.nix`, along with the one-time OAuth2 client setup (reconstructed there, since it was never recorded when first run).
+
+Granting access to a service takes **two** halves: the Kanidm account plus group membership, *and* a user in that service's own list. For Actual, see the provisioning comment in `actual-budget.nix` — the username it expects is the Kanidm **SPN** (`user@<tailscaleHost>`), not the bare login, and an unknown identity is rejected with HTTP 400 on `/openid/callback` *after* a fully successful token exchange, which reads as an OIDC fault but isn't. `kanidm person create` does not create a credential; the account cannot log in until a reset token has been used.
+
 ### Monitoring stack
 Prometheus (`prometheus.nix`) scrapes itself, Alertmanager, node-exporter, and a blackbox-exporter probing every service's HTTPS endpoint for uptime. Alerting rules (service down, high CPU/mem, low disk, stale/failed restic backups) route through Alertmanager to Telegram. Retention is capped at 7 days / 2 GB by design — this is not meant to be a long-term metrics store. Grafana is the dashboard layer on top.
 
