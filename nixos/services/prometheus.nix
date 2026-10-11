@@ -174,7 +174,7 @@ in
   };
 
   virtualisation.oci-containers.containers.prometheus = {
-    image = "prom/prometheus:v3.11.3";
+    image = "prom/prometheus:v3.13.4";
     extraOptions = [ "--network=host" ];
     volumes = [
       "${prometheusConfig}:/etc/prometheus/prometheus.yml:ro"
