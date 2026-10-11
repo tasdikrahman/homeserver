@@ -45,7 +45,7 @@
   };
 
   virtualisation.oci-containers.containers.miniflux = {
-    image = "miniflux/miniflux:2.2.19";
+    image = "miniflux/miniflux:2.3.3";
     extraOptions = [ "--network=host" ];
     # Podman strips the host nameserver (100.100.100.100, Tailscale MagicDNS) when
     # generating the container's /etc/resolv.conf, leaving it without a nameserver.
