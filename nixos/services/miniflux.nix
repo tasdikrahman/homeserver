@@ -27,7 +27,12 @@
   # Postgres database for Miniflux.
   # Listens on 127.0.0.1:15432 — not exposed to the network.
   virtualisation.oci-containers.containers.miniflux-db = {
-    image = "postgres:17-alpine";
+    # Pinned to an exact minor rather than the floating `17-alpine` tag: Podman
+    # never re-pulls a tag it already has locally, so a floating tag silently
+    # stays on whichever minor it first pulled and never picks up security
+    # fixes. Bumping the minor is safe in place; a major (18) needs a
+    # dump/restore of /var/lib/miniflux-db.
+    image = "postgres:17.11-alpine";
     extraOptions = [ "--network=host" ];
     volumes = [ "/var/lib/miniflux-db:/var/lib/postgresql/data" ];
     environment = {
