@@ -97,7 +97,7 @@
     # enableServer/serverSettings were renamed to server.enable/server.settings
     # in 26.05. The old names still work as aliases but warn on every rebuild.
     server.enable = true;
-    package = pkgs.kanidm_1_10;
+    package = pkgs.kanidm_1_11;
     server.settings = {
       origin = "https://${tailscaleHost}:8443";
       domain = tailscaleHost;
