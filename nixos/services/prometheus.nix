@@ -155,7 +155,7 @@ in
 
 {
   virtualisation.oci-containers.containers.blackbox-exporter = {
-    image = "prom/blackbox-exporter:v0.28.0";
+    image = "prom/blackbox-exporter:v0.29.0";
     extraOptions = [ "--network=host" ];
     # Podman strips the host nameserver (100.100.100.100, Tailscale MagicDNS) when
     # generating the container's /etc/resolv.conf, leaving it without a nameserver.
