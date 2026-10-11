@@ -12,7 +12,7 @@
 
 {
   virtualisation.oci-containers.containers.grafana = {
-    image = "grafana/grafana:12.4.12";
+    image = "grafana/grafana:13.2.3";
     extraOptions = [ "--network=host" ];
     volumes = [
       "/var/lib/grafana:/var/lib/grafana"
