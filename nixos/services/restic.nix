@@ -40,6 +40,13 @@
       "/var/lib/kanidm"
       "/var/lib/caddy/tls"
       "/var/lib/miniflux-db"
+      # Paperless: the originals plus the nightly export (paperless-export.timer,
+      # 01:30). The export holds byte-identical copies of the same files, so
+      # restic deduplicates them. /var/lib/paperless-db is left out on purpose:
+      # a live Postgres directory copied file by file is not a consistent
+      # snapshot, and the export already contains the database contents.
+      "/var/lib/paperless/media"
+      "/var/lib/paperless/export"
     ];
 
     # Run daily at 02:00.

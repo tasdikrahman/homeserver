@@ -92,6 +92,15 @@ let
             annotations:
               summary: "Restic backup hasn't run in over 25 hours"
               description: "The last restic backup ran more than 25 hours ago."
+
+          - alert: PaperlessExportFailed
+            expr: node_systemd_unit_state{name="paperless-export.service",state="failed"} == 1
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Paperless export failed"
+              description: "The nightly Paperless export failed, so tonight's restic backup holds a stale export. Check `journalctl -u paperless-export`."
   '';
 
   prometheusConfig = pkgs.writeText "prometheus.yml" ''
@@ -143,6 +152,9 @@ let
           - targets: ["https://${tailscaleHost}:8080"]
             labels:
               service: "Miniflux"
+          - targets: ["https://${tailscaleHost}:8000"]
+            labels:
+              service: "Paperless"
         relabel_configs:
           - source_labels: [__address__]
             target_label: __param_target

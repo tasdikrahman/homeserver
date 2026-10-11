@@ -60,6 +60,11 @@ Metrics collection and monitoring. Runs as a Podman container with host networki
 
 - URL: `https://<tailscale-host>:9090`
 
+### Paperless-ngx
+Document archive with OCR (German and English). Three Podman containers with host networking: the app (internal port 18000), Postgres and a Valkey task broker, the last two bound to loopback only. A nightly export at 01:30 feeds the restic backup.
+
+- URL: `https://<tailscale-host>:8000`
+
 ### Caddy
 Reverse proxy and TLS terminator for Actual Budget and Prometheus. Uses a Tailscale-signed certificate stored at `/var/lib/caddy/tls/`.
 
@@ -90,6 +95,7 @@ nixos/
     ├── caddy.nix                   # Caddy reverse proxy + Tailscale TLS cert provisioning
     ├── kanidm.nix                  # Kanidm identity provider (OIDC)
     ├── actual-budget.nix           # Actual Budget container
+    ├── paperless.nix               # Paperless-ngx, its Postgres and Valkey containers, nightly export
     └── prometheus.nix              # Prometheus metrics container
 ```
 
@@ -110,6 +116,8 @@ cp nixos/local.nix.example nixos/local.nix
 | `/var/lib/prometheus` | Prometheus TSDB |
 | `/var/lib/caddy/tls` | Tailscale TLS cert and key |
 | `/var/lib/kanidm` | Kanidm database |
+| `/var/lib/paperless` | Paperless documents, nightly export, search index |
+| `/var/lib/paperless-db` | Paperless's Postgres data |
 
 ## Secret files (not in git)
 
@@ -117,6 +125,8 @@ cp nixos/local.nix.example nixos/local.nix
 |------|---------|
 | `nixos/local.nix` | `hostname`, `tailscaleHost`, `username`, `sshPublicKey` |
 | `/etc/actual/oidc-secret` | `ACTUAL_OPENID_CLIENT_SECRET=...` |
+| `/etc/paperless/secrets` | `PAPERLESS_SECRET_KEY`, `PAPERLESS_DBPASS`, bootstrap admin user and password |
+| `/etc/paperless/db-secrets` | `POSTGRES_PASSWORD=...` |
 
 ## Initial setup on a new machine
 

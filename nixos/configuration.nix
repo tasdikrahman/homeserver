@@ -25,6 +25,7 @@ in
       ./services/alertmanager.nix
       ./services/grafana.nix
       ./services/miniflux.nix
+      ./services/paperless.nix
       ./services/restic.nix
       ./services/auto-rebuild.nix
     ];

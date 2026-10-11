@@ -61,6 +61,11 @@ let
           <span class="name">Miniflux</span>
           <span class="desc">RSS Reader</span>
         </a>
+        <a href="https://${tailscaleHost}:8000">
+          <span class="icon">📄</span>
+          <span class="name">Paperless</span>
+          <span class="desc">Documents</span>
+        </a>
         <a href="https://${tailscaleHost}:3000">
           <span class="icon">📊</span>
           <span class="name">Grafana</span>
@@ -223,6 +228,12 @@ in
       extraConfig = ''
         tls /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem
         reverse_proxy localhost:18080
+      '';
+    };
+    virtualHosts."${tailscaleHost}:8000" = {
+      extraConfig = ''
+        tls /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem
+        reverse_proxy localhost:18000
       '';
     };
   };
