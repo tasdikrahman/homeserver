@@ -36,7 +36,7 @@ in
 
 {
   virtualisation.oci-containers.containers.alertmanager = {
-    image = "prom/alertmanager:v0.32.1";
+    image = "prom/alertmanager:v0.34.1";
     extraOptions = [ "--network=host" ];
     volumes = [
       "${alertmanagerConfig}:/etc/alertmanager/alertmanager.yml:ro"
