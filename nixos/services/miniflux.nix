@@ -58,8 +58,21 @@
       CREATE_ADMIN   = "1";
     };
     environmentFiles = [ "/etc/miniflux/secrets" ];
+    # Orders this unit after podman-miniflux-db and restarts it with the DB.
+    dependsOn = [ "miniflux-db" ];
     autoStart = true;
   };
+
+  # Ordering alone is not enough: the DB unit counts as started as soon as the
+  # container is up, a second or two before Postgres accepts connections.
+  # Miniflux exits immediately on "connection refused", and with systemd's
+  # default 100ms restart delay it burned through the start limit (5 starts in
+  # 10s) in under a second and stayed failed. Seen 2026-10-11 when a switch
+  # restarted both containers: `switch-to-configuration` returned exit 4 and
+  # auto-rebuild reported a failed deploy, although the config itself was fine.
+  # A 5s delay keeps retries under the start limit, so it retries until the DB
+  # is ready instead of giving up.
+  systemd.services.podman-miniflux.serviceConfig.RestartSec = "5s";
 
   systemd.tmpfiles.rules = [
     # postgres:17-alpine runs as uid/gid 70 inside the container — must match here
