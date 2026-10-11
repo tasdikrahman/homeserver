@@ -61,7 +61,7 @@ Metrics collection and monitoring. Runs as a Podman container with host networki
 - URL: `https://<tailscale-host>:9090`
 
 ### Paperless-ngx
-Document archive with OCR (German and English). Three Podman containers with host networking: the app (internal port 18000), Postgres and a Valkey task broker, the last two bound to loopback only. A nightly export at 01:30 feeds the restic backup.
+Document archive with OCR (German and English). The app (internal port 18000), Postgres and a Valkey task broker run with host networking, the last two bound to loopback only. Tika and Gotenberg convert Office files and emails; they run on Podman's bridge network, reachable from loopback only. A nightly export at 01:30 feeds the restic backup.
 
 - URL: `https://<tailscale-host>:8000`
 

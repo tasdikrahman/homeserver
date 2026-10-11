@@ -27,6 +27,10 @@
 #
 # Access the UI at: https://<tailscaleHost>:8000
 #
+# Checking the Office-document helpers after a deploy (run on the server):
+#    curl -s http://127.0.0.1:19998/version        # Tika: prints its version
+#    curl -s http://127.0.0.1:13003/health         # Gotenberg: {"status":"up",...}
+#
 # Restoring: the nightly export in /var/lib/paperless/export is the supported
 # restore path (`document_importer`), and it works across Paperless versions.
 # The Postgres data directory is deliberately not backed up — see restic.nix.
@@ -104,6 +108,12 @@
       # German and English both ship in the image; no extra language install.
       PAPERLESS_OCR_LANGUAGE = "deu+eng";
 
+      # Office documents and emails (docx, xlsx, odt, eml, ...): Tika extracts
+      # the text, Gotenberg renders the PDF. Both containers are defined below.
+      PAPERLESS_TIKA_ENABLED            = "1";
+      PAPERLESS_TIKA_ENDPOINT           = "http://127.0.0.1:19998";
+      PAPERLESS_TIKA_GOTENBERG_ENDPOINT = "http://127.0.0.1:13003";
+
       # Keep the footprint small: one consumer task at a time, one web worker.
       PAPERLESS_TASK_WORKERS       = "1";
       PAPERLESS_THREADS_PER_WORKER = "2";
@@ -116,6 +126,39 @@
     };
     environmentFiles = [ "/etc/paperless/secrets" ];
     dependsOn = [ "paperless-db" "paperless-broker" ];
+    autoStart = true;
+  };
+
+  # Tika and Gotenberg are the two exceptions on this host to "every container
+  # uses --network=host". Neither needs to reach Kanidm or any .ts.net name,
+  # which is the only reason the others are on the host network, and both are
+  # better off isolated:
+  #   - Neither has authentication, and the Tika image hard-codes `-h 0.0.0.0`
+  #     in its entrypoint, so on the host network it would listen on every
+  #     interface, tailnet included.
+  #   - Gotenberg runs LibreOffice and Chromium over whatever document it is
+  #     handed. On the host network a crafted file could make it fetch from
+  #     the loopback-only services here (Valkey has no password).
+  # On Podman's default bridge they get their own network namespace, and the
+  # port is published on 127.0.0.1 only, so just Paperless can reach them.
+  virtualisation.oci-containers.containers.paperless-tika = {
+    image = "apache/tika:3.3.1.0";
+    ports = [ "127.0.0.1:19998:9998" ];
+    extraOptions = [ "--memory=1g" ];
+    autoStart = true;
+  };
+
+  virtualisation.oci-containers.containers.paperless-gotenberg = {
+    image = "gotenberg/gotenberg:8.37.0";
+    ports = [ "127.0.0.1:13003:3000" ];
+    extraOptions = [ "--memory=1g" ];
+    # Upstream Paperless's recommended flags: no JavaScript, and Chromium may
+    # only read the files Gotenberg itself stages under /tmp.
+    cmd = [
+      "gotenberg"
+      "--chromium-disable-javascript=true"
+      "--chromium-allow-list=file:///tmp/.*"
+    ];
     autoStart = true;
   };
 
