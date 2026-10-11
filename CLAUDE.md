@@ -55,7 +55,7 @@ Granting access to a service takes **two** halves: the Kanidm account plus group
 Prometheus (`prometheus.nix`) scrapes itself, Alertmanager, node-exporter, and a blackbox-exporter probing every service's HTTPS endpoint for uptime. Alerting rules (service down, high CPU/mem, low disk, stale/failed restic backups) route through Alertmanager to Telegram. Retention is capped at 7 days / 2 GB by design — this is not meant to be a long-term metrics store. Grafana is the dashboard layer on top.
 
 ### Backups
-Restic backs up `/etc`, and each service's persistent data directory (`/var/lib/actual`, `/var/lib/grafana`, `/var/lib/kanidm`, `/var/lib/caddy/tls`, `/var/lib/miniflux-db`, `/var/lib/paperless/media`, `/var/lib/paperless/export`) to Hetzner Object Storage nightly, with 7 daily / 4 weekly / 12 monthly retention. When adding a new stateful service, add its data directory to `services.restic.backups.hetzner.paths` in `restic.nix`. Paperless is backed up through its nightly export (`paperless-export.timer`, 01:30) rather than its Postgres directory, because restic copying a live Postgres data directory is not a consistent snapshot — prefer a dump/export step for any new database-backed service.
+Restic backs up `/etc`, and each service's persistent data directory (`/var/lib/actual`, `/var/lib/grafana`, `/var/lib/kanidm`, `/var/lib/caddy/tls`, `/var/lib/miniflux-db`, `/var/lib/paperless/media`, `/var/lib/paperless/export`, `/var/lib/silverbullet`) to Hetzner Object Storage nightly, with 7 daily / 4 weekly / 12 monthly retention. When adding a new stateful service, add its data directory to `services.restic.backups.hetzner.paths` in `restic.nix`. Paperless is backed up through its nightly export (`paperless-export.timer`, 01:30) rather than its Postgres directory, because restic copying a live Postgres data directory is not a consistent snapshot — prefer a dump/export step for any new database-backed service.
 
 ## Persistent data paths
 
@@ -69,6 +69,7 @@ Restic backs up `/etc`, and each service's persistent data directory (`/var/lib/
 | `/var/lib/miniflux-db` | Miniflux's Postgres data |
 | `/var/lib/paperless` | Paperless documents (`media`), nightly export, search index (`data`), consume folder |
 | `/var/lib/paperless-db` | Paperless's Postgres data (not backed up directly — see Backups) |
+| `/var/lib/silverbullet` | SilverBullet notes (plain Markdown) plus its accounts and SSO settings |
 | `/var/lib/alertmanager` | Alertmanager |
 | `/var/lib/nixos-auto-rebuild` | Auto-rebuild's last-applied-commit state |
 

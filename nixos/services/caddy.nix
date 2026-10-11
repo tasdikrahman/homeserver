@@ -66,6 +66,11 @@ let
           <span class="name">Paperless</span>
           <span class="desc">Documents</span>
         </a>
+        <a href="https://${tailscaleHost}:3002">
+          <span class="icon">📝</span>
+          <span class="name">SilverBullet</span>
+          <span class="desc">Notes</span>
+        </a>
         <a href="https://${tailscaleHost}:3000">
           <span class="icon">📊</span>
           <span class="name">Grafana</span>
@@ -234,6 +239,12 @@ in
       extraConfig = ''
         tls /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem
         reverse_proxy localhost:18000
+      '';
+    };
+    virtualHosts."${tailscaleHost}:3002" = {
+      extraConfig = ''
+        tls /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem
+        reverse_proxy localhost:13002
       '';
     };
   };

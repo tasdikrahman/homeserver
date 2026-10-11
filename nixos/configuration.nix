@@ -26,6 +26,7 @@ in
       ./services/grafana.nix
       ./services/miniflux.nix
       ./services/paperless.nix
+      ./services/silverbullet.nix
       ./services/restic.nix
       ./services/auto-rebuild.nix
     ];

@@ -65,6 +65,11 @@ Document archive with OCR (German and English). Three Podman containers with hos
 
 - URL: `https://<tailscale-host>:8000`
 
+### SilverBullet
+Markdown notes. One Podman container with host networking, listening internally on port 13002. Accounts and spaces are managed in its own Dashboard; there are no secret files.
+
+- URL: `https://<tailscale-host>:3002`
+
 ### Caddy
 Reverse proxy and TLS terminator for Actual Budget and Prometheus. Uses a Tailscale-signed certificate stored at `/var/lib/caddy/tls/`.
 
@@ -96,7 +101,8 @@ nixos/
     ├── kanidm.nix                  # Kanidm identity provider (OIDC)
     ├── actual-budget.nix           # Actual Budget container
     ├── paperless.nix               # Paperless-ngx, its Postgres and Valkey containers, nightly export
-    └── prometheus.nix              # Prometheus metrics container
+    ├── prometheus.nix              # Prometheus metrics container
+    └── silverbullet.nix            # SilverBullet notes container
 ```
 
 ## Local configuration
@@ -118,6 +124,7 @@ cp nixos/local.nix.example nixos/local.nix
 | `/var/lib/kanidm` | Kanidm database |
 | `/var/lib/paperless` | Paperless documents, nightly export, search index |
 | `/var/lib/paperless-db` | Paperless's Postgres data |
+| `/var/lib/silverbullet` | SilverBullet notes, accounts and SSO settings |
 
 ## Secret files (not in git)
 

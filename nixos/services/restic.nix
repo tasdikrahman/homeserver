@@ -47,6 +47,7 @@
       # snapshot, and the export already contains the database contents.
       "/var/lib/paperless/media"
       "/var/lib/paperless/export"
+      "/var/lib/silverbullet"
     ];
 
     # Run daily at 02:00.

@@ -155,6 +155,9 @@ let
           - targets: ["https://${tailscaleHost}:8000"]
             labels:
               service: "Paperless"
+          - targets: ["https://${tailscaleHost}:3002"]
+            labels:
+              service: "SilverBullet"
         relabel_configs:
           - source_labels: [__address__]
             target_label: __param_target
