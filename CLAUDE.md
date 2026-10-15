@@ -61,7 +61,7 @@ Restic backs up `/etc`, and each service's persistent data directory (`/var/lib/
 Root is LUKS2 (`luks-60dbdc80-…`, partition `/dev/disk/by-uuid/60dbdc80-d43a-44bb-a557-3db5c79e0762`). The initrd is the systemd one (`boot.initrd.systemd.enable`) with `tpm2-device=auto`, so once a TPM2 keyslot is enrolled the box unlocks itself at boot — watchdog/panic reboots and power cuts come back unattended, all the way to sshd, Tailscale and every container (nothing waits for a GDM login). The keyslots are runtime state in the LUKS header, not Nix config: the passphrase slot (never remove it), a recovery-key slot (stored off this box), and the TPM slot, enrolled on the server with:
 
 ```bash
-sudo systemd-cryptenroll --tpm2-device=list   # AMD fTPM must show up
+sudo systemd-cryptenroll --tpm2-device=list   # must list /dev/tpmrm0 (tpm_tis — a discrete TPM chip, not the CPU fTPM)
 sudo systemd-cryptenroll --recovery-key /dev/disk/by-uuid/60dbdc80-d43a-44bb-a557-3db5c79e0762
 sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/disk/by-uuid/60dbdc80-d43a-44bb-a557-3db5c79e0762
 sudo cryptsetup luksDump /dev/disk/by-uuid/60dbdc80-d43a-44bb-a557-3db5c79e0762   # shows systemd-tpm2 + systemd-recovery tokens
@@ -69,7 +69,7 @@ sudo cryptsetup luksDump /dev/disk/by-uuid/60dbdc80-d43a-44bb-a557-3db5c79e0762 
 
 **Why PCR 7 only:** it records Secure Boot state, which kernel bumps don't touch. PCRs 4/8/9 change on every kernel/initrd update (auto-rebuild + nightly upgrade would drop it back to the passphrase prompt constantly); PCRs 0/2 change on every BIOS update.
 
-**When it falls back to the passphrase:** BIOS/firmware update (an AMD fTPM may also be reset by one), Secure Boot toggled, TPM cleared. Type the passphrase at the console, then re-enroll with `sudo systemd-cryptenroll --wipe-slot=tpm2 --tpm2-device=auto --tpm2-pcrs=7 <partition>`. Do BIOS updates only with the console at hand.
+**When it falls back to the passphrase:** BIOS/firmware update, Secure Boot toggled, TPM cleared. Type the passphrase at the console, then re-enroll with `sudo systemd-cryptenroll --wipe-slot=tpm2 --tpm2-device=auto --tpm2-pcrs=7 <partition>`. Do BIOS updates only with the console at hand.
 
 **Accepted tradeoff (decided 2026-10-15):** without Secure Boot, PCR 7 reads the same for anything that boots, and `/boot` is unencrypted — so whoever has the *whole machine* can unseal the key (live USB, or a tampered initrd). Encryption still protects a disk that leaves on its own (RMA, disposal, dead drive). Whole-box theft was judged not a realistic threat for this box. If that changes, lanzaboote (Secure Boot with own keys) closes the gap. `boot.loader.systemd-boot.editor = false` blocks the trivial `init=/bin/sh` bypass at the boot menu. Before the SSD leaves the house: clear the TPM in the BIOS or `cryptsetup luksErase`.
 

@@ -46,7 +46,7 @@ in
   # has the whole machine from unsealing the key — it protects a disk that
   # leaves the box on its own, not a stolen box.
   # systemd initrd is required for tpm2-device; it also pulls in the TPM
-  # modules (tpm_crb for this Ryzen's fTPM) via boot.initrd.systemd.tpm2.
+  # modules (this box has a discrete TPM on tpm_tis) via boot.initrd.systemd.tpm2.
   boot.initrd.systemd.enable = true;
   boot.initrd.luks.devices."luks-60dbdc80-d43a-44bb-a557-3db5c79e0762".crypttabExtraOpts = [ "tpm2-device=auto" ];
   # Block editing kernel params at the boot menu (e.g. init=/bin/sh), which
