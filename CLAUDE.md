@@ -57,6 +57,22 @@ Prometheus (`prometheus.nix`) scrapes itself, Alertmanager, node-exporter, and a
 ### Backups
 Restic backs up `/etc`, and each service's persistent data directory (`/var/lib/actual`, `/var/lib/grafana`, `/var/lib/kanidm`, `/var/lib/caddy/tls`, `/var/lib/miniflux-db`, `/var/lib/paperless/media`, `/var/lib/paperless/export`, `/var/lib/silverbullet`) to Hetzner Object Storage nightly, with 7 daily / 4 weekly / 12 monthly retention. When adding a new stateful service, add its data directory to `services.restic.backups.hetzner.paths` in `restic.nix`. Paperless is backed up through its nightly export (`paperless-export.timer`, 01:30) rather than its Postgres directory, because restic copying a live Postgres data directory is not a consistent snapshot — prefer a dump/export step for any new database-backed service.
 
+### Disk encryption / TPM unlock
+Root is LUKS2 (`luks-60dbdc80-…`, partition `/dev/disk/by-uuid/60dbdc80-d43a-44bb-a557-3db5c79e0762`). The initrd is the systemd one (`boot.initrd.systemd.enable`) with `tpm2-device=auto`, so once a TPM2 keyslot is enrolled the box unlocks itself at boot — watchdog/panic reboots and power cuts come back unattended, all the way to sshd, Tailscale and every container (nothing waits for a GDM login). The keyslots are runtime state in the LUKS header, not Nix config: the passphrase slot (never remove it), a recovery-key slot (stored off this box), and the TPM slot, enrolled on the server with:
+
+```bash
+sudo systemd-cryptenroll --tpm2-device=list   # AMD fTPM must show up
+sudo systemd-cryptenroll --recovery-key /dev/disk/by-uuid/60dbdc80-d43a-44bb-a557-3db5c79e0762
+sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/disk/by-uuid/60dbdc80-d43a-44bb-a557-3db5c79e0762
+sudo cryptsetup luksDump /dev/disk/by-uuid/60dbdc80-d43a-44bb-a557-3db5c79e0762   # shows systemd-tpm2 + systemd-recovery tokens
+```
+
+**Why PCR 7 only:** it records Secure Boot state, which kernel bumps don't touch. PCRs 4/8/9 change on every kernel/initrd update (auto-rebuild + nightly upgrade would drop it back to the passphrase prompt constantly); PCRs 0/2 change on every BIOS update.
+
+**When it falls back to the passphrase:** BIOS/firmware update (an AMD fTPM may also be reset by one), Secure Boot toggled, TPM cleared. Type the passphrase at the console, then re-enroll with `sudo systemd-cryptenroll --wipe-slot=tpm2 --tpm2-device=auto --tpm2-pcrs=7 <partition>`. Do BIOS updates only with the console at hand.
+
+**Accepted tradeoff (decided 2026-10-15):** without Secure Boot, PCR 7 reads the same for anything that boots, and `/boot` is unencrypted — so whoever has the *whole machine* can unseal the key (live USB, or a tampered initrd). Encryption still protects a disk that leaves on its own (RMA, disposal, dead drive). Whole-box theft was judged not a realistic threat for this box. If that changes, lanzaboote (Secure Boot with own keys) closes the gap. `boot.loader.systemd-boot.editor = false` blocks the trivial `init=/bin/sh` bypass at the boot menu. Before the SSD leaves the house: clear the TPM in the BIOS or `cryptsetup luksErase`.
+
 ## Persistent data paths
 
 | Path | Service |
@@ -77,8 +93,8 @@ Restic backs up `/etc`, and each service's persistent data directory (`/var/lib/
 
 Claude has no shell on the server (see "What this repo is"), so triage is always a list of commands handed to the user to run at the physical console. Two facts shape the whole procedure:
 
-- **Root is LUKS-encrypted.** After *any* reboot the box sits at the initrd passphrase prompt with no disk, no network and no sshd. "Unreachable" most often means "rebooted and waiting for a passphrase", not "broken".
-- **The box auto-reboots on kernel panic/oops (`kernel.panic = 10`, `kernel.panic_on_oops = 1`) and on a systemd/hardware watchdog trip (`sp5100_tco`, 30s runtime / 30s reboot).** So an unexplained reboot is expected behaviour, not necessarily a new fault — but it means the LUKS prompt is where it lands.
+- **Root is LUKS-encrypted, normally TPM-unlocked** (see "Disk encryption / TPM unlock"). A reboot should come straight back up. If the box sits at the initrd passphrase prompt, with no disk, no network and no sshd, the **TPM unlock failed** — usually after a BIOS update or TPM reset. Type the passphrase and re-enroll the TPM slot. Before the TPM slot was enrolled, this prompt was where every reboot landed.
+- **The box auto-reboots on kernel panic/oops (`kernel.panic = 10`, `kernel.panic_on_oops = 1`) and on a systemd/hardware watchdog trip (`sp5100_tco`, 30s runtime / 30s reboot).** So an unexplained reboot is expected behaviour, not necessarily a new fault. With TPM unlock these reboots are silent, so the `ServerRebooted` alert is the only sign one happened.
 
 So: **look at the monitor before typing anything.**
 
@@ -149,7 +165,7 @@ The node keeps its existing `100.x` address across re-auth, so Caddy, Prometheus
 
 | On screen | Meaning | Next |
 |---|---|---|
-| LUKS passphrase prompt | Box rebooted | Enter passphrase, then Step 3 (read the *prior* boot) |
+| LUKS passphrase prompt | Box rebooted *and* TPM unlock failed | Enter passphrase, re-enroll TPM (see "Disk encryption / TPM unlock"), then Step 3 (read the *prior* boot) |
 | Login prompt / GDM | Booted fine; network or sshd broke | Step 2 |
 | Frozen, no cursor blink, Caps Lock LED dead | Same class as the 2026-08-03 hard freeze. Watchdog should have rebooted within 30s; if it didn't, the watchdog is not armed | Power-cycle, then Step 3 + the watchdog check |
 | Kernel panic text / emergency shell | | Photograph the screen, then Step 3 |
@@ -236,7 +252,7 @@ Append one line per outage here — the pattern across incidents is worth more t
 
 ### Release upgrades
 
-The channel is pinned declaratively in `system.autoUpgrade.channel`, so a release bump is a one-line diff — but the switch itself is **not** unattended, for three reasons specific to this machine: a new kernel needs a reboot, and a reboot stops at the LUKS prompt until someone types a passphrase; Kanidm cannot skip minor versions, so a release that drops the pinned attribute breaks evaluation; and auto-rebuild retries every 5 minutes, so an eval error becomes a failing switch on every tick.
+The channel is pinned declaratively in `system.autoUpgrade.channel`, so a release bump is a one-line diff — but the switch itself is **not** unattended, for three reasons specific to this machine: a new kernel needs a reboot, and if TPM unlock fails that reboot stops at the LUKS prompt until someone types a passphrase (a kernel bump alone does not change PCR 7, so normally it comes back by itself); Kanidm cannot skip minor versions, so a release that drops the pinned attribute breaks evaluation; and auto-rebuild retries every 5 minutes, so an eval error becomes a failing switch on every tick.
 
 `system.stateVersion` is **not** a version to bump. It records the release this machine was first installed with (25.11) so NixOS preserves the right defaults for stateful data, and it stays at that value forever.
 

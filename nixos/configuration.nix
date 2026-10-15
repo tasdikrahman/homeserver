@@ -37,6 +37,23 @@ in
   # Stop TTY from blanking
   boot.kernelParams = [ "consoleblank=0" ];
 
+  # TPM2 auto-unlock of the LUKS root, so watchdog/panic reboots and power
+  # cuts come back unattended instead of waiting at the passphrase prompt.
+  # The key itself is enrolled by hand on the server (systemd-cryptenroll
+  # --tpm2-pcrs=7, see CLAUDE.md "Disk encryption / TPM unlock"); this only
+  # tells the initrd to try the TPM. The passphrase slot stays as fallback.
+  # Accepted tradeoff: without Secure Boot, PCR 7 does not stop someone who
+  # has the whole machine from unsealing the key — it protects a disk that
+  # leaves the box on its own, not a stolen box.
+  # systemd initrd is required for tpm2-device; it also pulls in the TPM
+  # modules (tpm_crb for this Ryzen's fTPM) via boot.initrd.systemd.tpm2.
+  boot.initrd.systemd.enable = true;
+  boot.initrd.luks.devices."luks-60dbdc80-d43a-44bb-a557-3db5c79e0762".crypttabExtraOpts = [ "tpm2-device=auto" ];
+  # Block editing kernel params at the boot menu (e.g. init=/bin/sh), which
+  # would otherwise hand a root shell to anyone at the console once the TPM
+  # has unlocked the disk.
+  boot.loader.systemd-boot.editor = false;
+
   # Disable sleep/suspend/hibernate entirely
   systemd.targets.sleep.enable = false;
   systemd.targets.suspend.enable = false;
