@@ -69,7 +69,7 @@ Document archive with OCR (German and English). The app (internal port 18000), P
 - URL: `https://<tailscale-host>:8000`
 
 ### SilverBullet
-Markdown notes. One container listening internally on port 13002. Accounts, spaces and Kanidm SSO are managed in its own Dashboard; there are no secret files.
+Markdown notes. One container listening internally on port 13002. Accounts, spaces and Kanidm SSO are managed in its own Dashboard; there are no secret files. Full-text search is the Silversearch library, installed inside each space from `Library/Std/Pages/Library Manager` (search with `Ctrl-s`); it indexes in the browser and needs no server config.
 
 - URL: `https://<tailscale-host>:3002`
 

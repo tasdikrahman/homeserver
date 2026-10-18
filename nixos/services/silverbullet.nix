@@ -19,6 +19,14 @@
 # must use Authorization Code with PKCE, and the provider has to supply a
 # verified email — Kanidm accounts on this host have no mail attribute by
 # default, so that needs setting first.
+#
+# Full-text search is not in SilverBullet 2.x core and needs nothing here: it
+# is the Silversearch library, installed per space from the page
+# Library/Std/Pages/Library Manager. It lands under Library/ in the space (so
+# restic backs it up with the notes), indexes in each browser rather than on
+# the server, and searches with Ctrl-s. Settings go in the space's CONFIG page
+# (config.set { silversearch = { ... } }); ignoreDiacritics = true is worth it
+# for German notes.
 
 {
   virtualisation.oci-containers.containers.silverbullet = {
