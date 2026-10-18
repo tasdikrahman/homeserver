@@ -117,7 +117,9 @@ sudo systemd-cryptenroll --recovery-key /dev/disk/by-uuid/<luks-uuid>   # store 
 sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/disk/by-uuid/<luks-uuid>
 ```
 
-After a BIOS update or TPM reset, type the passphrase at the console and re-enroll with `--wipe-slot=tpm2` added to the second command.
+Keyslot 0 is the passphrase, 1 the recovery key and 2 the TPM. After a BIOS update or TPM reset, type the passphrase at the console and re-enroll with `--wipe-slot=tpm2` added to the second command.
+
+For the box to come back after a power cut at all, the BIOS setting **Power → After Power Loss** (F1 at boot) must be **Power On**. This is not something Nix can configure.
 
 Tradeoff: without Secure Boot, the TPM releases the key to anything that boots on this machine. The encryption protects a disk that leaves the machine (repair, disposal), not a stolen machine. Clear the TPM or run `cryptsetup luksErase` before the disk leaves the house.
 

@@ -67,6 +67,10 @@ sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/disk/by-uuid/60db
 sudo cryptsetup luksDump /dev/disk/by-uuid/60dbdc80-d43a-44bb-a557-3db5c79e0762   # shows systemd-tpm2 + systemd-recovery tokens
 ```
 
+Enrolled 2026-10-15: keyslot 0 = passphrase, 1 = recovery key (kept in the user's password manager, never on this box or in git), 2 = TPM2 (PCR 7). Unattended boot verified the same day.
+
+**Power-on after a power cut is a BIOS setting, not Nix:** F1 → Power → **After Power Loss** must be **Power On** (or Last State), otherwise the box stays off when power returns and the TPM unlock never gets a chance. Verify by `sudo poweroff`, unplug ~10s, plug back in — it should boot to GDM by itself.
+
 **Why PCR 7 only:** it records Secure Boot state, which kernel bumps don't touch. PCRs 4/8/9 change on every kernel/initrd update (auto-rebuild + nightly upgrade would drop it back to the passphrase prompt constantly); PCRs 0/2 change on every BIOS update.
 
 **When it falls back to the passphrase:** BIOS/firmware update, Secure Boot toggled, TPM cleared. Type the passphrase at the console, then re-enroll with `sudo systemd-cryptenroll --wipe-slot=tpm2 --tpm2-device=auto --tpm2-pcrs=7 <partition>`. Do BIOS updates only with the console at hand.
@@ -165,6 +169,7 @@ The node keeps its existing `100.x` address across re-auth, so Caddy, Prometheus
 
 | On screen | Meaning | Next |
 |---|---|---|
+| Black screen, power LED off | Powered off and never came back (e.g. after a power cut) | Press the power button, then check BIOS "After Power Loss" = Power On (see "Disk encryption / TPM unlock") |
 | LUKS passphrase prompt | Box rebooted *and* TPM unlock failed | Enter passphrase, re-enroll TPM (see "Disk encryption / TPM unlock"), then Step 3 (read the *prior* boot) |
 | Login prompt / GDM | Booted fine; network or sshd broke | Step 2 |
 | Frozen, no cursor blink, Caps Lock LED dead | Same class as the 2026-08-03 hard freeze. Watchdog should have rebooted within 30s; if it didn't, the watchdog is not armed | Power-cycle, then Step 3 + the watchdog check |
