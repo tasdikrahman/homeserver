@@ -68,6 +68,7 @@ Identity provider that issues OIDC tokens for Actual Budget and SilverBullet. Ha
 Document archive with OCR (German and English). The app (internal port 18000), Postgres and a Valkey task broker run with host networking, the last two bound to loopback only. Tika and Gotenberg convert Office files and emails; they run on Podman's bridge network, reachable from loopback only. A nightly export at 01:30 feeds the restic backup.
 
 - URL: `https://<tailscale-host>:8000`
+- Files are stored in the same folder tree as Dropbox (`PAPERLESS_FILENAME_FORMAT`, from each document's "Dropbox folder" custom field); uploads made after the import land in `inbox/<year>/`.
 - Files: `https://<tailscale-host>:8090` — read-only folder view of `media/documents` (`originals/` and `archive/`), served by Caddy's `file_server browse`, with Kanidm login through oauth2-proxy (internal port 14180). Setup and ACLs are in `nixos/services/paperless-files.nix`.
 
 ### SilverBullet

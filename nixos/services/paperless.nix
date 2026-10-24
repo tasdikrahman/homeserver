@@ -104,6 +104,18 @@
       PAPERLESS_DBPORT   = "15433";
       PAPERLESS_REDIS    = "redis://127.0.0.1:16379";
 
+      # Store files in the same folder tree as Dropbox, so the read-only file
+      # view (paperless-files.nix) mirrors it. Every imported document has a
+      # "Dropbox folder" custom field, set by ~/paperless-import/set_folders.py
+      # on the dev machine. Its separator is U+2044 (fraction slash), not "/":
+      # Paperless sanitises text fields before templating and would turn "/"
+      # into "-". The template turns it back. original_name is the uploaded
+      # filename without extension; Paperless appends the extension itself.
+      # Anything uploaded later has no such field and lands in inbox/<year>/.
+      # Changing this only affects documents as they are saved; existing
+      # files move with `podman exec paperless document_renamer`.
+      PAPERLESS_FILENAME_FORMAT = "{% set folder = custom_fields|get_cf_value('Dropbox folder') %}{% if folder %}{{ folder|replace('⁄', '/') }}/{{ original_name }}{% else %}inbox/{{ created_year }}/{{ title }}{% endif %}";
+
       PAPERLESS_TIME_ZONE    = "Europe/Berlin";
       # German and English both ship in the image; no extra language install.
       PAPERLESS_OCR_LANGUAGE = "deu+eng";
