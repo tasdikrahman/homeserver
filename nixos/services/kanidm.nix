@@ -94,6 +94,52 @@
   # Beware sub-second login→callback pairs in Actual's log with no matching
   # Kanidm traffic: that is a browser replaying a stale callback URL from
   # history, not a real attempt, and it will send you chasing a phantom.
+  #
+  # --- OAuth2 client: paperless-files (done on this host 2026-10-24) --------
+  #
+  # Kanidm login for the read-only Paperless file view on :8090. Caddy serves
+  # the files itself (file_server browse in caddy.nix) and asks oauth2-proxy
+  # (forward_auth) whether each request is logged in; oauth2-proxy does the
+  # OIDC login against this client. Module, ACLs and the reasoning live in
+  # paperless-files.nix. Unlike the actual-budget block above, this is the
+  # verified transcript, run as one paste after `kanidm login --name idm_admin`:
+  #
+  #   kanidm system oauth2 delete paperless-files    # only if recreating
+  #   kanidm group create paperless-files-users
+  #   kanidm group add-members paperless-files-users <your-username>
+  #   kanidm system oauth2 create paperless-files "Paperless Files" https://<tailscaleHost>:8090/
+  #   kanidm system oauth2 add-redirect-url paperless-files https://<tailscaleHost>:8090/oauth2/callback
+  #   kanidm system oauth2 update-scope-map paperless-files paperless-files-users openid profile email
+  #   SECRET=$(kanidm system oauth2 show-basic-secret paperless-files | tail -n1 | tr -d '[:space:]')
+  #   echo "secret length: ${#SECRET}"             # 48 on this host
+  #   sudo install -d -m 700 /etc/oauth2-proxy
+  #   printf '%s' "$SECRET" | sudo install -m 600 /dev/stdin /etc/oauth2-proxy/client-secret
+  #   openssl rand -hex 16 | tr -d '\n' | sudo install -m 600 /dev/stdin /etc/oauth2-proxy/cookie-secret
+  #   unset SECRET
+  #   kanidm system oauth2 get paperless-files | grep -E 'oauth2_rs_origin|scope_map'
+  #
+  # Each person who should get in also needs a mail attribute — oauth2-proxy
+  # identifies users by the email claim, which Kanidm only sends when one is
+  # set (nothing is ever mailed to it):
+  #
+  #   kanidm person update <username> --mail <address>
+  #   kanidm group add-members paperless-files-users <username>
+  #
+  # Gotchas hit while setting it up:
+  #   - The landing URL is the third argument to `oauth2 create`. Kanidm's own
+  #     :8443 there is wrong, and re-running `create` to fix it fails with
+  #     "HTTP Error: 409 Conflict" because the client already exists. Delete
+  #     and recreate it (or `oauth2 set-landing-url`).
+  #   - Deleting the client invalidates its secret, so `show-basic-secret` and
+  #     /etc/oauth2-proxy/client-secret must be redone after a recreate.
+  #   - No legacy crypto needed: oauth2-proxy verifies Kanidm's default ES256.
+  #   - Both secret files must exist BEFORE the config is pushed. Without them
+  #     oauth2-proxy cannot start, `nixos-rebuild switch` fails, and
+  #     auto-rebuild retries every 5 minutes without recording the commit.
+  #
+  # A good result from `get`: oauth2_rs_origin is the /oauth2/callback URL,
+  # oauth2_rs_origin_landing is https://<tailscaleHost>:8090/, and
+  # oauth2_rs_scope_map names paperless-files-users with email, openid, profile.
   services.kanidm = {
     # enableServer/serverSettings were renamed to server.enable/server.settings
     # in 26.05. The old names still work as aliases but warn on every rebuild.

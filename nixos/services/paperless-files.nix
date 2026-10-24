@@ -6,38 +6,26 @@
 # oauth2-proxy (forward_auth) whether each request is logged in. oauth2-proxy
 # does the OIDC login against Kanidm; it never proxies the files.
 #
+# Pieces, all on this host:
+#   - caddy.nix: the :8090 vhost. /oauth2/* goes to oauth2-proxy, everything
+#     else passes forward_auth and is then served by file_server browse.
+#   - this file: oauth2-proxy, Caddy's read ACLs, the firewall port.
+#   - kanidm.nix: the paperless-files OAuth2 client and the full one-time
+#     setup transcript (group, client, mail attribute, secret files).
+#   - /etc/oauth2-proxy/{client-secret,cookie-secret}: secrets, 0600 root,
+#     backed up with /etc by restic.
+#
 # --- One-time setup, on the server, BEFORE pushing this --------------------
 #
-# oauth2-proxy will not start without both secret files below, and a unit that
-# fails to start makes `nixos-rebuild switch` fail — auto-rebuild would then
-# retry every 5 minutes without recording the commit as applied.
+# Run the paperless-files block in kanidm.nix. oauth2-proxy will not start
+# without both secret files it creates, and a unit that fails to start makes
+# `nixos-rebuild switch` fail — auto-rebuild would then retry every 5 minutes
+# without recording the commit as applied.
 #
-#   export KANIDM_URL=https://<tailscaleHost>:8443
-#   kanidm login --name idm_admin
+# Cookie secret: 32 hex chars = a 32-byte AES key. Neither file may have a
+# trailing newline, hence the printf / tr -d '\n' in that block.
 #
-#   # Membership in this group is what grants access.
-#   kanidm group create paperless-files-users
-#   kanidm group add-members paperless-files-users <your-username>
-#
-#   # oauth2-proxy identifies users by the (verified) email claim, which
-#   # Kanidm only sends when the person has a mail attribute. Accounts don't
-#   # have one by default (see kanidm.nix). Nothing is ever mailed to it.
-#   kanidm person update <your-username> --mail <your-address>
-#
-#   kanidm system oauth2 create paperless-files "Paperless Files" https://<tailscaleHost>:8090/
-#   kanidm system oauth2 add-redirect-url paperless-files https://<tailscaleHost>:8090/oauth2/callback
-#   kanidm system oauth2 update-scope-map paperless-files paperless-files-users openid profile email
-#   kanidm system oauth2 show-basic-secret paperless-files
-#
-#   sudo install -d -m 700 /etc/oauth2-proxy
-#   printf '%s' '<secret from show-basic-secret>' \
-#     | sudo install -m 600 /dev/stdin /etc/oauth2-proxy/client-secret
-#   # 32 hex chars = a 32-byte AES key. No trailing newline in either file.
-#   openssl rand -hex 16 | tr -d '\n' \
-#     | sudo install -m 600 /dev/stdin /etc/oauth2-proxy/cookie-secret
-#
-# No legacy-crypto step, unlike Actual: oauth2-proxy verifies Kanidm's default
-# ES256 tokens. If login fails with a signing-algorithm error, fall back to
+# If login fails with a signing-algorithm error, fall back to
 # `kanidm system oauth2 warning-enable-legacy-crypto paperless-files`.
 #
 # After the first login, `journalctl -u oauth2-proxy` should show

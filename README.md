@@ -188,6 +188,8 @@ Each module documents how to create its files at the top.
 | `/etc/miniflux/secrets` | `DATABASE_URL`, admin username and password |
 | `/etc/paperless/secrets` | `PAPERLESS_SECRET_KEY`, `PAPERLESS_DBPASS`, bootstrap admin user and password |
 | `/etc/paperless/db-secrets` | `POSTGRES_PASSWORD=...` |
+| `/etc/oauth2-proxy/client-secret` | Kanidm `paperless-files` client secret, bare value, no newline (Paperless file view) |
+| `/etc/oauth2-proxy/cookie-secret` | 32 hex chars, no newline: oauth2-proxy session cookie key |
 | `/etc/restic/password` | Restic repository password |
 | `/etc/restic/env` | Hetzner S3 access key and secret |
 
