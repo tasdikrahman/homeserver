@@ -155,6 +155,11 @@ let
           - targets: ["https://${tailscaleHost}:8000"]
             labels:
               service: "Paperless"
+          # The files themselves need a login, so probe oauth2-proxy's ping
+          # through Caddy instead: proves TLS, Caddy and oauth2-proxy are up.
+          - targets: ["https://${tailscaleHost}:8090/oauth2/ping"]
+            labels:
+              service: "Paperless Files"
           - targets: ["https://${tailscaleHost}:3002"]
             labels:
               service: "SilverBullet"

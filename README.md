@@ -19,6 +19,7 @@ Tailscale VPN (tailscale0)
         ├── :5006  → Caddy → Actual Budget    (port 15006 internally)
         ├── :8000  → Caddy → Paperless-ngx    (port 18000 internally)
         ├── :8080  → Caddy → Miniflux         (port 18080 internally)
+        ├── :8090  → Caddy → Paperless files  (read-only, Kanidm login via oauth2-proxy on 14180)
         ├── :8443  → Kanidm (identity provider, TLS direct)
         ├── :9090  → Caddy → Prometheus       (port 19090 internally)
         └── :9093  → Caddy → Alertmanager     (port 19093 internally)
@@ -67,6 +68,7 @@ Identity provider that issues OIDC tokens for Actual Budget and SilverBullet. Ha
 Document archive with OCR (German and English). The app (internal port 18000), Postgres and a Valkey task broker run with host networking, the last two bound to loopback only. Tika and Gotenberg convert Office files and emails; they run on Podman's bridge network, reachable from loopback only. A nightly export at 01:30 feeds the restic backup.
 
 - URL: `https://<tailscale-host>:8000`
+- Files: `https://<tailscale-host>:8090` — read-only folder view of `media/documents` (`originals/` and `archive/`), served by Caddy's `file_server browse`, with Kanidm login through oauth2-proxy (internal port 14180). Setup and ACLs are in `nixos/services/paperless-files.nix`.
 
 ### SilverBullet
 Markdown notes. One container listening internally on port 13002. Accounts, spaces and Kanidm SSO are managed in its own Dashboard; there are no secret files. Full-text search is the Silversearch library, installed inside each space from `Library/Std/Pages/Library Manager` (search with `Ctrl-s`); it indexes in the browser and needs no server config.
@@ -141,6 +143,7 @@ nixos/
     ├── kanidm.nix                  # Kanidm identity provider (OIDC)
     ├── miniflux.nix                # Miniflux and its Postgres containers
     ├── paperless.nix               # Paperless-ngx, Postgres, Valkey, Tika, Gotenberg, nightly export
+    ├── paperless-files.nix         # Read-only file view of the documents: oauth2-proxy (Kanidm SSO), ACLs
     ├── prometheus.nix              # Prometheus, blackbox-exporter, node-exporter, alert rules
     ├── restic.nix                  # Nightly restic backup to Hetzner Object Storage
     └── silverbullet.nix            # SilverBullet notes container

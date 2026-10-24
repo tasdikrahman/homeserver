@@ -71,8 +71,9 @@
   #
   # `actual-budget-users` is the group named in the client's scope map
   # (`kanidm system oauth2 get actual-budget`); membership is what authorises
-  # the OIDC grant. A `mail` attribute is NOT required — no account here has
-  # one and SSO works regardless.
+  # the OIDC grant. A `mail` attribute is NOT required for Actual, but
+  # Paperless Files (oauth2-proxy) and SilverBullet need one — set it with
+  # `kanidm person update <username> --mail <address>` (see paperless-files.nix).
   #
   # Kanidm access is only half of it: Actual keeps its own user list and will
   # reject an unknown identity with HTTP 400 on /openid/callback even though

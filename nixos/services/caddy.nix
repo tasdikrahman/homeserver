@@ -66,6 +66,11 @@ let
           <span class="name">Paperless</span>
           <span class="desc">Documents</span>
         </a>
+        <a href="https://${tailscaleHost}:8090">
+          <span class="icon">🗂️</span>
+          <span class="name">Paperless Files</span>
+          <span class="desc">Folder view</span>
+        </a>
         <a href="https://${tailscaleHost}:3002">
           <span class="icon">📝</span>
           <span class="name">SilverBullet</span>
@@ -245,6 +250,34 @@ in
       extraConfig = ''
         tls /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem
         reverse_proxy localhost:13002
+      '';
+    };
+    # Read-only folder view of Paperless's files, served by Caddy itself.
+    # file_server never writes, and sends no Content-Disposition header, so
+    # PDFs open inline in the browser. Login is Kanidm via oauth2-proxy, and
+    # read access comes from ACLs — both in paperless-files.nix.
+    virtualHosts."${tailscaleHost}:8090" = {
+      extraConfig = ''
+        tls /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem
+
+        # oauth2-proxy's own endpoints: start, callback, sign_out, ping.
+        handle /oauth2/* {
+          reverse_proxy 127.0.0.1:14180
+        }
+
+        handle {
+          forward_auth 127.0.0.1:14180 {
+            uri /oauth2/auth
+            @unauthenticated status 401
+            handle_response @unauthenticated {
+              redir * /oauth2/start?rd={http.request.uri.path}
+            }
+          }
+          root * /var/lib/paperless/media/documents
+          file_server browse {
+            hide thumbnails
+          }
+        }
       '';
     };
   };
