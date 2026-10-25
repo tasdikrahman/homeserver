@@ -102,6 +102,15 @@ let
               summary: "Paperless export failed"
               description: "The nightly Paperless export failed, so tonight's restic backup holds a stale export. Check `journalctl -u paperless-export`."
 
+          - alert: PaperlessImportFailed
+            expr: node_systemd_unit_state{name="paperless-import.service",state="failed"} == 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Paperless import failed"
+              description: "Last night's import of new Dropbox documents into Paperless failed. Check `journalctl -u paperless-import`. Files that failed are skipped on the next run."
+
           - alert: SyncthingDown
             expr: node_systemd_unit_state{name="syncthing.service",state="active"} == 0
             for: 15m

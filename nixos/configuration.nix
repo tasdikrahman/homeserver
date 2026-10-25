@@ -29,6 +29,7 @@ in
       ./services/miniflux.nix
       ./services/paperless.nix
       ./services/paperless-files.nix
+      ./services/paperless-import.nix
       ./services/dropbox-mirror.nix
       ./services/silverbullet.nix
       ./services/restic.nix

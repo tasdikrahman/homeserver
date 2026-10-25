@@ -69,7 +69,7 @@ Document archive with OCR (German and English). The app (internal port 18000), P
 
 - URL: `https://<tailscale-host>:8000`
 - Files are stored in the same folder tree as Dropbox (`PAPERLESS_FILENAME_FORMAT`, from each document's "Dropbox folder" custom field); uploads made after the import land in `inbox/<year>/`.
-- Paperless does not follow later changes in Dropbox. For the current folder layout, use the Dropbox mirror below.
+- New files in the Dropbox mirror are imported every night at 01:00 (`paperless-import.timer`, `nixos/services/paperless-import.nix`). It only adds documents: deletes and moves in Dropbox are not followed, so for the current folder layout use the Dropbox mirror below.
 
 ### Dropbox mirror
 A read-only copy of the laptop's `~/Dropbox`, kept current by Syncthing (laptop "Send Only", server "Receive Only"), at `/var/lib/dropbox-mirror`. Syncthing listens on 22000 for the tailnet only, with discovery and relays off; its GUI is on `127.0.0.1:18384`. Deleted and overwritten files are kept for 30 days in `.stversions/`. The laptop's device ID goes in `local.nix` (`syncthingLaptopId`); until it is set, the module is off. Setup is in `nixos/services/dropbox-mirror.nix`.
@@ -151,6 +151,8 @@ nixos/
     ├── miniflux.nix                # Miniflux and its Postgres containers
     ├── paperless.nix               # Paperless-ngx, Postgres, Valkey, Tika, Gotenberg, nightly export
     ├── paperless-files.nix         # oauth2-proxy (Kanidm SSO) for the :8090 file view
+    ├── paperless-import.nix        # Nightly import of new files from the Dropbox mirror into Paperless
+    ├── paperless-import/           # import.py and set_folders.py (private config lives in /etc)
     ├── prometheus.nix              # Prometheus, blackbox-exporter, node-exporter, alert rules
     ├── restic.nix                  # Nightly restic backup to Hetzner Object Storage
     └── silverbullet.nix            # SilverBullet notes container
@@ -175,6 +177,7 @@ cp nixos/local.nix.example nixos/local.nix
 | `/var/lib/grafana` | Grafana |
 | `/var/lib/caddy/tls` | Tailscale TLS cert and key |
 | `/var/lib/dropbox-mirror` | Syncthing mirror of the laptop's Dropbox |
+| `/var/lib/paperless-import` | Import run state: which mirror files are already in Paperless |
 | `/var/lib/syncthing` | Syncthing's config, keys and index |
 | `/var/lib/kanidm` | Kanidm database |
 | `/var/lib/miniflux-db` | Miniflux's Postgres data |

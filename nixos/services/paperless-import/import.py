@@ -24,6 +24,7 @@ import argparse
 import collections
 import hashlib
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -32,12 +33,16 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-TOKEN_FILE = Path.home() / ".config/paperless/token"
 # Everything personal stays outside this public repo: the config (host,
 # folder names, rules; see config.example.json) and the run state, which
-# lists every document path.
-CONFIG_FILE = Path.home() / ".config/paperless-import/config.json"
-STATE_FILE = Path.home() / ".local/state/paperless-import/state.jsonl"
+# lists every document path. The defaults are the laptop's locations; the
+# server's systemd unit (../paperless-import.nix) sets all three.
+def _path(variable, default):
+    return Path(os.environ.get(variable, default)).expanduser()
+
+TOKEN_FILE = _path("PAPERLESS_TOKEN_FILE", "~/.config/paperless/token")
+CONFIG_FILE = _path("PAPERLESS_IMPORT_CONFIG", "~/.config/paperless-import/config.json")
+STATE_FILE = _path("PAPERLESS_IMPORT_STATE", "~/.local/state/paperless-import/state.jsonl")
 CONFIG = json.loads(CONFIG_FILE.read_text())
 HOST = CONFIG["host"]
 PATH_FIELD = "Dropbox path"
@@ -46,8 +51,10 @@ DOCUMENTS = {".pdf", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".gif"}
 # Converted by Tika + Gotenberg on the server.
 OFFICE = {".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".odt", ".ods", ".odp", ".rtf", ".eml"}
 
+# .stversions is Syncthing's store of deleted and replaced files in the
+# server's Dropbox mirror: old copies, not documents to import.
 SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "site-packages", "__pycache__",
-             ".dropbox.cache", ".dropbox"}
+             ".dropbox.cache", ".dropbox", ".stversions", ".stfolder"}
 SKIP_CATEGORIES = set(CONFIG.get("skip_categories", []))
 
 BATCH_TAG = "dropbox-import"
@@ -136,6 +143,7 @@ class Paperless:
         # Only GETs — a retried upload is handled explicitly in main().
         retry = Retry(total=6, backoff_factor=2, status_forcelist=[502, 503, 504], allowed_methods=["GET"])
         self.session.mount("https://", HTTPAdapter(max_retries=retry))
+        self.session.mount("http://", HTTPAdapter(max_retries=retry))
         self.session.headers["Authorization"] = "Token " + TOKEN_FILE.read_text().strip()
         self.session.headers["Accept"] = "application/json; version=10"
         self.ids = {}
@@ -251,6 +259,8 @@ def main():
     parser.add_argument("--only", action="append", help="category to import (repeatable)")
     parser.add_argument("--limit", type=int, help="stop after this many uploads")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--retry-failed", action="store_true",
+                        help="upload files that failed before again (skipped by default)")
     parser.add_argument("--report", action="store_true")
     args = parser.parse_args()
     if args.report:
@@ -258,11 +268,18 @@ def main():
 
     state = load_state()
     done = {"success", "duplicate", "duplicate-local"}
+    # A file Paperless rejected once usually fails again; retrying it on every
+    # nightly run would only repeat the failure. --retry-failed opts back in.
+    failed = {"failure", "upload-error", "timeout"}
     seen = {r["sha256"]: r["path"] for r in state.values() if r["status"] in done and "sha256" in r}
     plan, summary = [], collections.Counter()
     for path, rel, meta in collect(args.root, args.only):
-        if state.get(rel, {}).get("status") in done:
+        status = state.get(rel, {}).get("status")
+        if status in done:
             summary["already done"] += 1
+            continue
+        if status in failed and not args.retry_failed:
+            summary["failed before, skipped"] += 1
             continue
         digest = sha256(path)
         if digest in seen and seen[digest] != rel:
@@ -316,6 +333,11 @@ def main():
         sys.exit(130)
     print(f"\nFinished in {(time.time() - started) / 60:.1f} min.")
     report()
+    # Non-zero when this run had failures, so the systemd unit fails and
+    # alerts. The next run skips those files, so the alert clears by itself.
+    state = load_state()
+    if any(state.get(rel, {}).get("status") in failed for _, rel, _, _ in plan):
+        sys.exit(1)
 
 
 if __name__ == "__main__":
