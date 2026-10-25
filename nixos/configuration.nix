@@ -14,6 +14,8 @@ in
   _module.args.username         = local.username;
   _module.args.sshPublicKey     = local.sshPublicKey;
   _module.args.resticRepository = local.resticRepository;
+  # Optional: dropbox-mirror.nix stays off until local.nix sets it.
+  _module.args.syncthingLaptopId = local.syncthingLaptopId or null;
 
   imports =
     [ ./hardware-configuration.nix
@@ -27,6 +29,7 @@ in
       ./services/miniflux.nix
       ./services/paperless.nix
       ./services/paperless-files.nix
+      ./services/dropbox-mirror.nix
       ./services/silverbullet.nix
       ./services/restic.nix
       ./services/auto-rebuild.nix

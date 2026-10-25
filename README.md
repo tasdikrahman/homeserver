@@ -19,7 +19,7 @@ Tailscale VPN (tailscale0)
         ├── :5006  → Caddy → Actual Budget    (port 15006 internally)
         ├── :8000  → Caddy → Paperless-ngx    (port 18000 internally)
         ├── :8080  → Caddy → Miniflux         (port 18080 internally)
-        ├── :8090  → Caddy → Paperless files  (read-only, Kanidm login via oauth2-proxy on 14180)
+        ├── :8090  → Caddy → Dropbox files    (read-only, Kanidm login via oauth2-proxy on 14180)
         ├── :8443  → Kanidm (identity provider, TLS direct)
         ├── :9090  → Caddy → Prometheus       (port 19090 internally)
         └── :9093  → Caddy → Alertmanager     (port 19093 internally)
@@ -69,7 +69,12 @@ Document archive with OCR (German and English). The app (internal port 18000), P
 
 - URL: `https://<tailscale-host>:8000`
 - Files are stored in the same folder tree as Dropbox (`PAPERLESS_FILENAME_FORMAT`, from each document's "Dropbox folder" custom field); uploads made after the import land in `inbox/<year>/`.
-- Files: `https://<tailscale-host>:8090` — read-only folder view of `media/documents` (`originals/` and `archive/`), served by Caddy's `file_server browse`, with Kanidm login through oauth2-proxy (internal port 14180). Setup and ACLs are in `nixos/services/paperless-files.nix`.
+- Paperless does not follow later changes in Dropbox. For the current folder layout, use the Dropbox mirror below.
+
+### Dropbox mirror
+A read-only copy of the laptop's `~/Dropbox`, kept current by Syncthing (laptop "Send Only", server "Receive Only"), at `/var/lib/dropbox-mirror`. Syncthing listens on 22000 for the tailnet only, with discovery and relays off; its GUI is on `127.0.0.1:18384`. Deleted and overwritten files are kept for 30 days in `.stversions/`. The laptop's device ID goes in `local.nix` (`syncthingLaptopId`); until it is set, the module is off. Setup is in `nixos/services/dropbox-mirror.nix`.
+
+- Files: `https://<tailscale-host>:8090` — folder view of the mirror, served by Caddy's `file_server browse`, with Kanidm login through oauth2-proxy (internal port 14180, `nixos/services/paperless-files.nix`).
 
 ### SilverBullet
 Markdown notes. One container listening internally on port 13002. Accounts, spaces and Kanidm SSO are managed in its own Dashboard; there are no secret files. Full-text search is the Silversearch library, installed inside each space from `Library/Std/Pages/Library Manager` (search with `Ctrl-s`); it indexes in the browser and needs no server config.
@@ -140,11 +145,12 @@ nixos/
     ├── alertmanager.nix            # Alertmanager container, Telegram routing
     ├── auto-rebuild.nix            # Pulls origin/main every 5 min and runs nixos-rebuild switch
     ├── caddy.nix                   # Caddy reverse proxy + Tailscale TLS cert provisioning
+    ├── dropbox-mirror.nix          # Syncthing mirror of the laptop's Dropbox, shown on :8090
     ├── grafana.nix                 # Grafana container
     ├── kanidm.nix                  # Kanidm identity provider (OIDC)
     ├── miniflux.nix                # Miniflux and its Postgres containers
     ├── paperless.nix               # Paperless-ngx, Postgres, Valkey, Tika, Gotenberg, nightly export
-    ├── paperless-files.nix         # Read-only file view of the documents: oauth2-proxy (Kanidm SSO), ACLs
+    ├── paperless-files.nix         # oauth2-proxy (Kanidm SSO) for the :8090 file view
     ├── prometheus.nix              # Prometheus, blackbox-exporter, node-exporter, alert rules
     ├── restic.nix                  # Nightly restic backup to Hetzner Object Storage
     └── silverbullet.nix            # SilverBullet notes container
@@ -168,6 +174,8 @@ cp nixos/local.nix.example nixos/local.nix
 | `/var/lib/alertmanager` | Alertmanager |
 | `/var/lib/grafana` | Grafana |
 | `/var/lib/caddy/tls` | Tailscale TLS cert and key |
+| `/var/lib/dropbox-mirror` | Syncthing mirror of the laptop's Dropbox |
+| `/var/lib/syncthing` | Syncthing's config, keys and index |
 | `/var/lib/kanidm` | Kanidm database |
 | `/var/lib/miniflux-db` | Miniflux's Postgres data |
 | `/var/lib/paperless` | Paperless documents, nightly export, search index |

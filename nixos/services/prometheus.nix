@@ -101,6 +101,15 @@ let
             annotations:
               summary: "Paperless export failed"
               description: "The nightly Paperless export failed, so tonight's restic backup holds a stale export. Check `journalctl -u paperless-export`."
+
+          - alert: SyncthingDown
+            expr: node_systemd_unit_state{name="syncthing.service",state="active"} == 0
+            for: 15m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Syncthing is not running"
+              description: "The Dropbox mirror on :8090 is not receiving changes from the laptop. Check `journalctl -u syncthing`."
   '';
 
   prometheusConfig = pkgs.writeText "prometheus.yml" ''
@@ -159,7 +168,7 @@ let
           # through Caddy instead: proves TLS, Caddy and oauth2-proxy are up.
           - targets: ["https://${tailscaleHost}:8090/oauth2/ping"]
             labels:
-              service: "Paperless Files"
+              service: "Dropbox Files"
           - targets: ["https://${tailscaleHost}:3002"]
             labels:
               service: "SilverBullet"

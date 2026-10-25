@@ -1,6 +1,9 @@
 { config, pkgs, tailscaleHost, ... }:
 
-# Read-only folder view of Paperless's documents on :8090, behind Kanidm SSO.
+# Kanidm SSO for the read-only folder view on :8090. Despite the name, the
+# view now shows the Syncthing mirror of the laptop's Dropbox
+# (dropbox-mirror.nix), not Paperless's files; the module and the Kanidm
+# client keep their original paperless-files name.
 #
 # Caddy serves the files itself (file_server browse, see caddy.nix) and asks
 # oauth2-proxy (forward_auth) whether each request is logged in. oauth2-proxy
@@ -9,7 +12,8 @@
 # Pieces, all on this host:
 #   - caddy.nix: the :8090 vhost. /oauth2/* goes to oauth2-proxy, everything
 #     else passes forward_auth and is then served by file_server browse.
-#   - this file: oauth2-proxy, Caddy's read ACLs, the firewall port.
+#   - this file: oauth2-proxy and the firewall port.
+#   - dropbox-mirror.nix: the folder being served, and Caddy's read ACL on it.
 #   - kanidm.nix: the paperless-files OAuth2 client and the full one-time
 #     setup transcript (group, client, mail attribute, secret files).
 #   - /etc/oauth2-proxy/{client-secret,cookie-secret}: secrets, 0600 root,
@@ -81,14 +85,11 @@
     serviceConfig.RestartSec = "5s";
   };
 
-  systemd.tmpfiles.rules = [
-    # Read-only access for Caddy without changing Paperless's ownership.
-    # Traverse-only on the parent, so data/ and consume/ stay unlistable.
-    # A+ is recursive and re-applied on every switch; the d: default entry
-    # makes new files inherit the read grant.
-    "a+ /var/lib/paperless       - - - - u:caddy:x"
-    "A+ /var/lib/paperless/media - - - - u:caddy:rX,d:u:caddy:rX"
-  ];
+  # Caddy no longer reads /var/lib/paperless. Removing the tmpfiles ACL
+  # rules does not revoke ACLs already set, so strip them once by hand on
+  # the server (needed since the 2026-10-25 switch to dropbox-mirror.nix):
+  #   sudo setfacl -R -x u:caddy -k /var/lib/paperless/media
+  #   sudo setfacl -x u:caddy /var/lib/paperless
 
   networking.firewall.allowedTCPPorts = [ 8090 ];
 }

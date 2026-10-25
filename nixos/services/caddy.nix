@@ -68,7 +68,7 @@ let
         </a>
         <a href="https://${tailscaleHost}:8090">
           <span class="icon">🗂️</span>
-          <span class="name">Paperless Files</span>
+          <span class="name">Dropbox Files</span>
           <span class="desc">Folder view</span>
         </a>
         <a href="https://${tailscaleHost}:3002">
@@ -252,10 +252,11 @@ in
         reverse_proxy localhost:13002
       '';
     };
-    # Read-only folder view of Paperless's files, served by Caddy itself.
-    # file_server never writes, and sends no Content-Disposition header, so
-    # PDFs open inline in the browser. Login is Kanidm via oauth2-proxy, and
-    # read access comes from ACLs — both in paperless-files.nix.
+    # Read-only folder view of the laptop's Dropbox, mirrored by Syncthing,
+    # served by Caddy itself. file_server never writes, and sends no
+    # Content-Disposition header, so PDFs open inline in the browser. Login is
+    # Kanidm via oauth2-proxy (paperless-files.nix); read access comes from
+    # an ACL (dropbox-mirror.nix).
     virtualHosts."${tailscaleHost}:8090" = {
       extraConfig = ''
         tls /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem
@@ -273,9 +274,11 @@ in
               redir * /oauth2/start?rd={http.request.uri.path}
             }
           }
-          root * /var/lib/paperless/media/documents
+          root * /var/lib/dropbox-mirror
           file_server browse {
-            hide thumbnails
+            # Syncthing's marker, ignore file and 30-day version store.
+            # Hidden paths also 404 when requested directly.
+            hide .st*
           }
         }
       '';

@@ -104,8 +104,8 @@
       PAPERLESS_DBPORT   = "15433";
       PAPERLESS_REDIS    = "redis://127.0.0.1:16379";
 
-      # Store files in the same folder tree as Dropbox, so the read-only file
-      # view (paperless-files.nix) mirrors it. Every imported document has a
+      # Store files in the same folder tree as Dropbox, so originals/ mirrors
+      # the layout as of the 2026-10-12 import. Every imported document has a
       # "Dropbox folder" custom field, set by ~/paperless-import/set_folders.py
       # on the dev machine. Its separator is U+2044 (fraction slash), not "/":
       # Paperless sanitises text fields before templating and would turn "/"

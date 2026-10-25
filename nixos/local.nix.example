@@ -6,4 +6,7 @@
   username          = "your-unix-username";
   sshPublicKey      = "ssh-rsa AAAA... user@host";
   resticRepository  = "s3:https://nbg1.your-objectstorage.com/your-bucket-name";
+  # Optional. The laptop's Syncthing device ID; leave out to keep
+  # dropbox-mirror.nix disabled. Not a secret, but kept out of the public repo.
+  syncthingLaptopId = "XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX-XXXXXXX";
 }
