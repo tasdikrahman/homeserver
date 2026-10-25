@@ -46,8 +46,8 @@
     #
     # The username Actual expects is the Kanidm **SPN**, not the bare login:
     #
-    #     leahelenepollmer@nixos.pipefish-sun.ts.net     <- correct
-    #     leahelenepollmer                               <- rejected
+    #     <username>@<tailscaleHost>     <- correct
+    #     <username>                     <- rejected
     #
     # That is the `spn` field from `kanidm person get <username>`, and it is
     # what Kanidm sends as preferred_username. Confirm the format against an

@@ -1,0 +1,13 @@
+{
+  "host": "https://<tailscale-host>:8000",
+  "category_parent": "<folder whose subfolders are the categories, or null>",
+  "skip_categories": ["<category>"],
+  "tag_names": {
+    "<folder-name>": "<tag>"
+  },
+  "rules": [
+    ["<lower-case/folder/prefix>", {"type": "<Document type>"}],
+    ["<lower-case/folder/prefix>", {"correspondent": "<Correspondent>"}],
+    ["<lower-case/folder/prefix>", {"tag": "<extra tag>"}]
+  ]
+}

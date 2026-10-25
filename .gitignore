@@ -1,1 +1,10 @@
 nixos/local.nix
+# Paperless import keeps its config and run state outside the repo
+# (~/.config/paperless-import, ~/.local/state/paperless-import). These only
+# catch copies dropped here by mistake.
+tools/paperless-import/*.json
+!tools/paperless-import/config.example.json
+tools/paperless-import/*.jsonl
+tools/paperless-import/*.log
+tools/paperless-import/*.txt
+tools/paperless-import/__pycache__/
