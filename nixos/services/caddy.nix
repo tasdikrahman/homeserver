@@ -255,8 +255,7 @@ in
     # Read-only folder view of the laptop's Dropbox, mirrored by Syncthing,
     # served by Caddy itself. file_server never writes, and sends no
     # Content-Disposition header, so PDFs open inline in the browser. Login is
-    # Kanidm via oauth2-proxy (paperless-files.nix); read access comes from
-    # an ACL (dropbox-mirror.nix).
+    # Kanidm via oauth2-proxy; it and the read ACL are in dropbox-mirror.nix.
     virtualHosts."${tailscaleHost}:8090" = {
       extraConfig = ''
         tls /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem

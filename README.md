@@ -74,7 +74,7 @@ Document archive with OCR (German and English). The app (internal port 18000), P
 ### Dropbox mirror
 A read-only copy of the laptop's `~/Dropbox`, kept current by Syncthing (laptop "Send Only", server "Receive Only"), at `/var/lib/dropbox-mirror`. Syncthing listens on 22000 for the tailnet only, with discovery and relays off; its GUI is on `127.0.0.1:18384`. Deleted and overwritten files are kept for 30 days in `.stversions/`. The laptop's device ID goes in `local.nix` (`syncthingLaptopId`); until it is set, the module is off. Setup is in `nixos/services/dropbox-mirror.nix`.
 
-- Files: `https://<tailscale-host>:8090` — folder view of the mirror, served by Caddy's `file_server browse`, with Kanidm login through oauth2-proxy (internal port 14180, `nixos/services/paperless-files.nix`).
+- Files: `https://<tailscale-host>:8090` — folder view of the mirror, served by Caddy's `file_server browse`, with Kanidm login through oauth2-proxy (internal port 14180, same module).
 
 ### SilverBullet
 Markdown notes. One container listening internally on port 13002. Accounts, spaces and Kanidm SSO are managed in its own Dashboard; there are no secret files. Full-text search is the Silversearch library, installed inside each space from `Library/Std/Pages/Library Manager` (search with `Ctrl-s`); it indexes in the browser and needs no server config.
@@ -145,12 +145,11 @@ nixos/
     ├── alertmanager.nix            # Alertmanager container, Telegram routing
     ├── auto-rebuild.nix            # Pulls origin/main every 5 min and runs nixos-rebuild switch
     ├── caddy.nix                   # Caddy reverse proxy + Tailscale TLS cert provisioning
-    ├── dropbox-mirror.nix          # Syncthing mirror of the laptop's Dropbox, shown on :8090
+    ├── dropbox-mirror.nix          # Syncthing mirror of the laptop's Dropbox, :8090 view, oauth2-proxy (Kanidm SSO)
     ├── grafana.nix                 # Grafana container
     ├── kanidm.nix                  # Kanidm identity provider (OIDC)
     ├── miniflux.nix                # Miniflux and its Postgres containers
     ├── paperless.nix               # Paperless-ngx, Postgres, Valkey, Tika, Gotenberg, nightly export
-    ├── paperless-files.nix         # oauth2-proxy (Kanidm SSO) for the :8090 file view
     ├── paperless-import.nix        # Nightly import of new files from the Dropbox mirror into Paperless
     ├── paperless-import/           # import.py and set_folders.py (private config lives in /etc)
     ├── prometheus.nix              # Prometheus, blackbox-exporter, node-exporter, alert rules
@@ -200,7 +199,7 @@ Each module documents how to create its files at the top.
 | `/etc/miniflux/secrets` | `DATABASE_URL`, admin username and password |
 | `/etc/paperless/secrets` | `PAPERLESS_SECRET_KEY`, `PAPERLESS_DBPASS`, bootstrap admin user and password |
 | `/etc/paperless/db-secrets` | `POSTGRES_PASSWORD=...` |
-| `/etc/oauth2-proxy/client-secret` | Kanidm `paperless-files` client secret, bare value, no newline (Paperless file view) |
+| `/etc/oauth2-proxy/client-secret` | Kanidm `paperless-files` client secret, bare value, no newline (Dropbox file view) |
 | `/etc/oauth2-proxy/cookie-secret` | 32 hex chars, no newline: oauth2-proxy session cookie key |
 | `/etc/restic/password` | Restic repository password |
 | `/etc/restic/env` | Hetzner S3 access key and secret |

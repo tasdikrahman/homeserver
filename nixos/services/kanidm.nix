@@ -73,7 +73,7 @@
   # (`kanidm system oauth2 get actual-budget`); membership is what authorises
   # the OIDC grant. A `mail` attribute is NOT required for Actual, but
   # Paperless Files (oauth2-proxy) and SilverBullet need one — set it with
-  # `kanidm person update <username> --mail <address>` (see paperless-files.nix).
+  # `kanidm person update <username> --mail <address>` (see dropbox-mirror.nix).
   #
   # Kanidm access is only half of it: Actual keeps its own user list and will
   # reject an unknown identity with HTTP 400 on /openid/callback even though
@@ -101,7 +101,7 @@
   # the files itself (file_server browse in caddy.nix) and asks oauth2-proxy
   # (forward_auth) whether each request is logged in; oauth2-proxy does the
   # OIDC login against this client. Module, ACLs and the reasoning live in
-  # paperless-files.nix. Unlike the actual-budget block above, this is the
+  # dropbox-mirror.nix. Unlike the actual-budget block above, this is the
   # verified transcript, run as one paste after `kanidm login --name idm_admin`:
   #
   #   kanidm system oauth2 delete paperless-files    # only if recreating
