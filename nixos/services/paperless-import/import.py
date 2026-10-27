@@ -156,8 +156,12 @@ class Paperless:
             page.raise_for_status()
             body = page.json()
             items += body["results"]
-            # The API hands back http:// links from behind the reverse proxy.
-            url = body["next"] and body["next"].replace("http://", "https://", 1)
+            # Behind the reverse proxy the API hands back http:// links; follow
+            # them over the scheme HOST uses (plain http when talking straight
+            # to the container on 127.0.0.1).
+            url = body["next"]
+            if url and HOST.startswith("https://"):
+                url = url.replace("http://", "https://", 1)
         return items
 
     def object_id(self, endpoint, name):
