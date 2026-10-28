@@ -154,7 +154,7 @@
   # On Podman's default bridge they get their own network namespace, and the
   # port is published on 127.0.0.1 only, so just Paperless can reach them.
   virtualisation.oci-containers.containers.paperless-tika = {
-    image = "apache/tika:3.3.1.0";
+    image = "apache/tika:3.3.3.0";
     ports = [ "127.0.0.1:19998:9998" ];
     extraOptions = [ "--memory=1g" ];
     autoStart = true;
