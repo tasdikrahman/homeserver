@@ -3,7 +3,7 @@
 {
   # Actual Budget container. Uses host networking so it can reach Kanidm on the
   # same machine — Podman's bridge network can't route to the Tailscale IP.
-  # Listens on 15006 internally (ACTUAL_PORT) to avoid clashing with Caddy on 5006.
+  # Listens on 127.0.0.1:15006 internally (ACTUAL_HOSTNAME/ACTUAL_PORT) to avoid clashing with Caddy on 5006.
   virtualisation.oci-containers.containers.actual = {
     image = "actualbudget/actual-server:26.11.0";
     extraOptions = [ "--network=host" ];
@@ -21,6 +21,19 @@
     # Non-secret OIDC config — safe to keep in git.
     environment = {
       ACTUAL_PORT                   = "15006";
+      # Host networking + tailscale0 being a trusted interface means the
+      # default bind (::) would expose plain-HTTP 15006 to the whole tailnet,
+      # bypassing Caddy. Loopback only; Caddy is the sole way in.
+      ACTUAL_HOSTNAME               = "127.0.0.1";
+      # Default also allows "header" login (x-actual-password), which Caddy
+      # would pass through from any tailnet client and Actual would trust
+      # because the request arrives from loopback. Password is kept as a
+      # fallback for when Kanidm is down.
+      ACTUAL_ALLOWED_LOGIN_METHODS  = "openid,password";
+      # Default list has ::1 but not 127.0.0.0/8, so with Caddy connecting
+      # over 127.0.0.1 every client would look like Caddy for rate limiting.
+      ACTUAL_TRUSTED_PROXIES        = "127.0.0.1/32,::1/128";
+      ACTUAL_TRUSTED_AUTH_PROXIES   = "127.0.0.1/32,::1/128";
       ACTUAL_OPENID_DISCOVERY_URL   = "https://${tailscaleHost}:8443/oauth2/openid/actual-budget";
       ACTUAL_OPENID_CLIENT_ID       = "actual-budget";
       ACTUAL_OPENID_SERVER_HOSTNAME = "https://${tailscaleHost}:5006";

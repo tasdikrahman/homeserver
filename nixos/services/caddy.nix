@@ -213,7 +213,7 @@ in
     virtualHosts."${tailscaleHost}:5006" = {
       extraConfig = ''
         tls /var/lib/caddy/tls/cert.pem /var/lib/caddy/tls/key.pem
-        reverse_proxy localhost:15006
+        reverse_proxy 127.0.0.1:15006
       '';
     };
     virtualHosts."${tailscaleHost}:9090" = {
